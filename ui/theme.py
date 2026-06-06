@@ -169,7 +169,7 @@ QPushButton#genre_chip:hover {{ border-color: {WHITE}; color: {WHITE}; }}
 QPushButton#genre_chip[active=true] {{
     background: {RED};
     color: {WHITE};
-    border-color: {WHITE};
+    border-color: {RED};
     font-weight: 700;
 }}
 

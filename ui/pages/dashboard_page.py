@@ -1,14 +1,13 @@
 """
 ui/pages/dashboard_page.py
-Halaman DASHBOARD: statistik ringkas + bar chart Top 10 popularitas.
-Dipisah dari halaman Film Populer sesuai navigasi modular.
+Halaman DASHBOARD: statistik + chart + favorit terbaru yang bisa diklik.
 """
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QScrollArea, QSizePolicy
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QColor, QCursor
 from PySide6.QtCharts import (
     QChart, QChartView, QBarSeries, QBarSet,
     QValueAxis, QBarCategoryAxis
@@ -17,23 +16,109 @@ from PySide6.QtGui import QPainter, QPen
 
 from ui.components.stat_card import StatCard
 from ui.theme import (BG_BASE, BG_SURFACE, BG_CARD, WHITE, GRAY_100,
-                       GRAY_200, GRAY_300, GRAY_400, RED, GOLD, GREEN_ACT, BLUE_ACT, BORDER)
+                       GRAY_200, GRAY_300, GRAY_400, RED, GOLD,
+                       GREEN_ACT, BLUE_ACT, BORDER)
 from database.db_manager import DatabaseManager
+
+
+class RecentFavRow(QFrame):
+    """
+    Satu baris film favorit di dashboard — bisa diklik untuk
+    membuka dialog detail dengan sinopsis.
+    """
+    klik_detail = Signal(dict)
+
+    def __init__(self, data: dict, parent=None):
+        super().__init__(parent)
+        self.data = data
+        self.setFixedHeight(52)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.setStyleSheet(f"""
+            QFrame {{
+                background: transparent;
+                border-bottom: 1px solid {BORDER};
+                border-radius: 0;
+            }}
+            QFrame:hover {{
+                background: {BG_CARD};
+            }}
+        """)
+        self._build(data)
+
+    def _build(self, d):
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(0, 8, 8, 8)
+        lay.setSpacing(12)
+
+        # Judul
+        lbl_j = QLabel(d.get("judul", "?"))
+        lbl_j.setStyleSheet(
+            f"color: {WHITE}; font-weight: 600; font-size: 12px; background: transparent;"
+        )
+        lbl_j.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+        # Genre
+        genre = d.get("genre", "")
+        lbl_g = QLabel(genre)
+        lbl_g.setStyleSheet(
+            f"color: {GRAY_300}; font-size: 11px; background: transparent;"
+        )
+        lbl_g.setFixedWidth(80)
+
+        # Rating
+        rating = float(d.get("rating", 0))
+        rc = (GREEN_ACT if rating >= 8 else
+              GOLD if rating >= 6.5 else
+              "#ff6b35" if rating >= 5 else GRAY_300)
+        lbl_r = QLabel(f"⭐ {rating:.1f}")
+        lbl_r.setStyleSheet(
+            f"color: {rc}; font-size: 11px; font-weight: 600; background: transparent;"
+        )
+        lbl_r.setFixedWidth(55)
+
+        # Tanggal
+        lbl_d = QLabel(d.get("tanggal_tambah", ""))
+        lbl_d.setStyleSheet(
+            f"color: {GRAY_400}; font-size: 10px; background: transparent;"
+        )
+        lbl_d.setFixedWidth(85)
+
+        # Hint klik
+        lbl_hint = QLabel("›")
+        lbl_hint.setStyleSheet(
+            f"color: {GRAY_400}; font-size: 16px; background: transparent;"
+        )
+
+        lay.addWidget(lbl_j)
+        lay.addWidget(lbl_g)
+        lay.addWidget(lbl_r)
+        lay.addWidget(lbl_d)
+        lay.addWidget(lbl_hint)
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.klik_detail.emit(self.data)
 
 
 class DashboardPage(QWidget):
     """
-    Halaman Dashboard menampilkan:
-    1. Grid 4 StatCard (total film, favorit, avg rating, request API)
-    2. Bar chart QtCharts Top 10 film terpopuler
-    3. Ringkasan daftar favorit terbaru
+    Halaman Dashboard:
+    1. Grid 4 StatCard
+    2. Bar chart QtCharts Top 10 popularitas
+    3. Favorit terbaru — bisa diklik buka detail + sinopsis
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.db = DatabaseManager()
+        self.db            = DatabaseManager()
         self._film_populer: list[dict] = []
-        self._api_req = 0
+        self._api_req      = 0
+        self._client       = None   # diisi dari MainWindow
         self._build()
+
+    def set_client(self, client):
+        """Dipanggil dari MainWindow setelah client dibuat."""
+        self._client = client
 
     def _build(self):
         root = QVBoxLayout(self)
@@ -50,18 +135,18 @@ class DashboardPage(QWidget):
         lay.setContentsMargins(40, 32, 40, 40)
         lay.setSpacing(28)
 
-        # Judul halaman
+        # Judul
         lbl_title = QLabel("Dashboard")
         lbl_title.setObjectName("page_title")
         lay.addWidget(lbl_title)
 
-        # ── Stats row ──
+        # Stats
         lay.addLayout(self._build_stats())
 
-        # ── Chart ──
+        # Chart
         lay.addWidget(self._build_chart())
 
-        # ── Favorit terbaru ──
+        # Favorit terbaru
         lay.addWidget(self._build_recent_fav())
 
         lay.addStretch()
@@ -72,10 +157,10 @@ class DashboardPage(QWidget):
         row = QHBoxLayout()
         row.setSpacing(16)
         items = [
-            ("Film Populer TMDb", "–",     "Dimuat dari API",      RED),
-            ("Film Favorit",      "0",     "Tersimpan di SQLite",  "#7C3AED"),
-            ("Rating Rata-rata",  "–",     "Dari daftar favorit",  GOLD),
-            ("Request API",       "0",     "Sesi ini",             BLUE_ACT),
+            ("Film Populer TMDb", "–",  "Dimuat dari API",     RED),
+            ("Film Favorit",      "0",  "Tersimpan di SQLite", "#7C3AED"),
+            ("Rating Rata-rata",  "–",  "Dari daftar favorit", GOLD),
+            ("Request API",       "0",  "Sesi ini",            BLUE_ACT),
         ]
         self._stats: list[StatCard] = []
         for lbl, val, sub, clr in items:
@@ -119,27 +204,63 @@ class DashboardPage(QWidget):
         frame.setObjectName("chart_frame")
         lay = QVBoxLayout(frame)
         lay.setContentsMargins(24, 20, 24, 20)
-        lay.setSpacing(12)
+        lay.setSpacing(0)
 
+        # Header baris
+        hdr = QHBoxLayout()
         lbl = QLabel("❤️  Favorit Terbaru")
         lbl.setObjectName("section_title")
-        lay.addWidget(lbl)
+        self._lbl_hint_fav = QLabel("Klik baris untuk melihat detail & sinopsis")
+        self._lbl_hint_fav.setStyleSheet(
+            f"color: {GRAY_400}; font-size: 10px;"
+        )
+        hdr.addWidget(lbl)
+        hdr.addStretch()
+        hdr.addWidget(self._lbl_hint_fav)
+        lay.addLayout(hdr)
+        lay.addSpacing(14)
 
-        self._fav_preview_lay = QVBoxLayout()
-        self._fav_preview_lay.setSpacing(8)
-        lay.addLayout(self._fav_preview_lay)
+        # Header kolom tabel
+        col_hdr = QFrame()
+        col_hdr.setFixedHeight(28)
+        col_hdr.setStyleSheet(
+            f"background: {BG_CARD}; border-radius: 4px;"
+        )
+        ch = QHBoxLayout(col_hdr)
+        ch.setContentsMargins(0, 0, 8, 0)
+        ch.setSpacing(12)
+        for txt, w in [("JUDUL", 0), ("GENRE", 80), ("RATING", 55), ("TANGGAL", 85), ("", 16)]:
+            l = QLabel(txt)
+            l.setStyleSheet(
+                f"color: {GRAY_100}; font-size: 9px; "
+                f"font-weight: 700; letter-spacing: 1px;"
+            )
+            if w:
+                l.setFixedWidth(w)
+            else:
+                l.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            ch.addWidget(l)
+        lay.addWidget(col_hdr)
+        lay.addSpacing(4)
 
-        self._lbl_no_fav = QLabel("Belum ada film favorit. Tambahkan dari halaman Film Populer!")
-        self._lbl_no_fav.setObjectName("muted")
+        # Container baris favorit
+        self._fav_container = QVBoxLayout()
+        self._fav_container.setSpacing(0)
+        lay.addLayout(self._fav_container)
+
+        self._lbl_no_fav = QLabel(
+            "Belum ada film favorit. Tambahkan dari halaman Film Populer!"
+        )
         self._lbl_no_fav.setAlignment(Qt.AlignCenter)
-        self._lbl_no_fav.setStyleSheet(f"padding: 20px; color: {GRAY_400};")
+        self._lbl_no_fav.setStyleSheet(
+            f"color: {GRAY_400}; padding: 24px; font-size: 12px;"
+        )
         lay.addWidget(self._lbl_no_fav)
         return frame
 
-    # ── Public: dipanggil dari MainWindow ───────────────────────────
+    # Public: dipanggil dari MainWindow 
 
     def refresh(self, film_list: list[dict] = None, api_req: int = 0):
-        """Perbarui semua widget dashboard."""
         if film_list is not None:
             self._film_populer = film_list
         self._api_req = api_req
@@ -150,7 +271,9 @@ class DashboardPage(QWidget):
     def _update_stats(self):
         n   = self.db.count()
         avg = self.db.avg_rating()
-        self._stats[0].set_value(str(len(self._film_populer)) if self._film_populer else "–")
+        self._stats[0].set_value(
+            str(len(self._film_populer)) if self._film_populer else "–"
+        )
         self._stats[1].set_value(n)
         self._stats[2].set_value(f"{avg:.1f}" if avg else "–")
         self._stats[3].set_value(self._api_req)
@@ -195,34 +318,29 @@ class DashboardPage(QWidget):
         series.attachAxis(ax_y)
 
     def _update_recent_fav(self):
-        # Bersihkan widget lama
-        while self._fav_preview_lay.count():
-            item = self._fav_preview_lay.takeAt(0)
+        # Bersihkan baris lama
+        while self._fav_container.count():
+            item = self._fav_container.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
-        favs = self.db.semua()[:5]
+        favs = self.db.semua()[:8]   # tampilkan 8 terbaru
         if not favs:
             self._lbl_no_fav.show()
+            self._lbl_hint_fav.hide()
             return
+
         self._lbl_no_fav.hide()
+        self._lbl_hint_fav.show()
 
         for f in favs:
-            row = QFrame()
-            row.setFixedHeight(44)
-            rl = QHBoxLayout(row)
-            rl.setContentsMargins(0, 0, 0, 0)
-            lbl_j = QLabel(f.get("judul","?"))
-            lbl_j.setStyleSheet(f"color: {WHITE}; font-weight: 600; font-size: 12px;")
-            lbl_g = QLabel(f.get("genre",""))
-            lbl_g.setStyleSheet(f"color: {GRAY_300}; font-size: 11px;")
-            lbl_r = QLabel(f"⭐ {float(f.get('rating',0)):.1f}")
-            lbl_r.setStyleSheet(f"color: {GOLD}; font-size: 11px; font-weight: 600;")
-            lbl_d = QLabel(f.get("tanggal_tambah",""))
-            lbl_d.setStyleSheet(f"color: {GRAY_400}; font-size: 10px;")
-            rl.addWidget(lbl_j, stretch=3)
-            rl.addWidget(lbl_g, stretch=2)
-            rl.addWidget(lbl_r)
-            rl.addSpacing(16)
-            rl.addWidget(lbl_d)
-            self._fav_preview_lay.addWidget(row)
+            row = RecentFavRow(f)
+            row.klik_detail.connect(self._on_klik_fav)
+            self._fav_container.addWidget(row)
+
+    def _on_klik_fav(self, data: dict):
+        """Buka dialog detail favorit dengan sinopsis."""
+        from ui.pages.favorites_page import FavDetailDialog
+        dlg = FavDetailDialog(data, self.db, self._client, self)
+        dlg.data_changed.connect(self._update_recent_fav)
+        dlg.exec()

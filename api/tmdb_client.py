@@ -13,7 +13,7 @@ class TMDbClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.session = requests.Session()
-        # sinopsis selalu tersedia untuk semua film
+        # en-US: sinopsis selalu tersedia untuk semua film
         self.session.params = {"api_key": api_key, "language": "en-US"}
 
     def get_popular_movies(self, page: int = 1) -> dict:

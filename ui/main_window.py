@@ -1,5 +1,5 @@
 """
-ui/main_window.py — MainWindow dengan cleanup thread dan warna teks bawah yang diperterang.
+ui/main_window.py — MainWindow dengan cleanup thread yang benar.
 """
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
@@ -38,8 +38,7 @@ class Sidebar(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("sidebar")
-        # Melebarkan sidebar agar teks logo memiliki ruang gerak bebas
-        self.setFixedWidth(240)
+        self.setFixedWidth(250)
         self._build()
 
     def _build(self):
@@ -54,7 +53,7 @@ class Sidebar(QFrame):
             f"background: #0D0D0D; border-bottom: 1px solid {BORDER};"
         )
         ll = QHBoxLayout(logo_f)
-        ll.setContentsMargins(16, 0, 16, 0)
+        ll.setContentsMargins(20, 0, 20, 0)
 
         icon_box = QFrame()
         icon_box.setFixedSize(32, 32)
@@ -68,8 +67,7 @@ class Sidebar(QFrame):
 
         lbl_logo = QLabel(APP_NAME.upper())
         lbl_logo.setObjectName("logo_text")
-        lbl_logo.setFont(QFont("Segoe UI", 15, QFont.Bold)) 
-        lbl_logo.setStyleSheet("background: transparent; color: #FFFFFF;")
+        lbl_logo.setFont(QFont("Segoe UI", 14, QFont.Black))
 
         ll.addWidget(icon_box)
         ll.addSpacing(10)
@@ -97,7 +95,7 @@ class Sidebar(QFrame):
         lay.addWidget(self.btn_favorites)
         lay.addStretch()
 
-        # ── INFO BAWAH SIDEBAR (DI-UPDATE AGAR LEBIH TERANG) ──
+        # Info bawah
         info = QFrame()
         info.setStyleSheet(
             f"background: #0D0D0D; border-top: 1px solid {BORDER};"
@@ -106,17 +104,12 @@ class Sidebar(QFrame):
         il.setContentsMargins(20, 12, 20, 16)
         il.setSpacing(6)
 
-        # Menggunakan warna Gold yang lebih cerah (#FFD700)
         self.lbl_api = QLabel("● TMDb API · Menghubungkan...")
-        self.lbl_api.setStyleSheet("color: #FFD700; font-size: 10px; font-weight: 600;")
-        
-        # Menggunakan warna Biru terang (#60A5FA) agar kontras di latar belakang hitam
+        self.lbl_api.setStyleSheet(f"color: {GOLD}; font-size: 10px;")
         self.lbl_db  = QLabel("● SQLite · cinetrack.db")
-        self.lbl_db.setStyleSheet("color: #60A5FA; font-size: 10px; font-weight: 600;")
-        
-        # Mengubah teks versi dari abu-abu gelap ke abu-abu terang (#9CA3AF)
+        self.lbl_db.setStyleSheet(f"color: #4DA3FF; font-size: 10px;")
         lbl_ver = QLabel(f"{APP_NAME} v{APP_VERSION}  ·  PySide6")
-        lbl_ver.setStyleSheet("color: #9CA3AF; font-size: 9px;")
+        lbl_ver.setStyleSheet(f"color: {GRAY_400}; font-size: 9px;")
 
         il.addWidget(self.lbl_api)
         il.addWidget(self.lbl_db)
@@ -142,9 +135,8 @@ class Topbar(QFrame):
         self.lbl_page.setFont(QFont("Segoe UI", 15, QFont.Bold))
         self.lbl_page.setStyleSheet(f"color: {WHITE};")
 
-        # Mengubah warna teks tanggal kanan atas menjadi abu-abu terang (#D1D5DB)
         self.lbl_date = QLabel()
-        self.lbl_date.setStyleSheet("color: #D1D5DB; font-size: 11px; font-weight: 500;")
+        self.lbl_date.setStyleSheet(f"color: {GRAY_400}; font-size: 11px;")
 
         lay.addWidget(self.lbl_page)
         lay.addStretch()
@@ -173,7 +165,7 @@ class MainWindow(QMainWindow):
         self._client  = TMDbClient(TMDB_API_KEY)
         self._api_req = 0
         self._build()
-        self._navigate(1)   # buka di Film Populer
+        self._navigate(0)   
 
     def _build(self):
         central = QWidget()
@@ -203,6 +195,7 @@ class MainWindow(QMainWindow):
         self._stack.setStyleSheet(f"background: {BG_BASE};")
 
         self._pg_dash   = DashboardPage()
+        self._pg_dash.set_client(self._client)
         self._pg_movies = MoviesPage(self._client)
         self._pg_movies.favorite_changed.connect(self._on_fav_changed)
         self._pg_fav    = FavoritesPage(self._client)
@@ -214,10 +207,7 @@ class MainWindow(QMainWindow):
         rl.addWidget(self._stack)
         root.addWidget(right, stretch=1)
 
-        # ── STATUS BAR PALING BAWAH (DI-UPDATE AGAR LEBIH TERANG) ──
         self._sb = QStatusBar()
-        # Memaksa warna font StatusBar menggunakan stylesheet warna abu-abu sangat terang (#E5E7EB)
-        self._sb.setStyleSheet("color: #E5E7EB; font-size: 11px; font-weight: 500; background: #0A0A0A;")
         self.setStatusBar(self._sb)
         self._update_status()
 
@@ -245,14 +235,10 @@ class MainWindow(QMainWindow):
         self._api_req = self._pg_movies.api_req
         from database.db_manager import DatabaseManager
         n = DatabaseManager().count()
-        
-        # Update teks database lokal saat ada perubahan agar warnanya tetap konsisten terang
         self._sidebar.lbl_db.setText(f"● SQLite · {n} film favorit")
-        self._sidebar.lbl_db.setStyleSheet("color: #60A5FA; font-size: 10px; font-weight: 600;")
-        
         self._sidebar.lbl_api.setText("● TMDb API · Online ✓")
         self._sidebar.lbl_api.setStyleSheet(
-            f"color: {GREEN_ACT}; font-size: 10px; font-weight: 600;"
+            f"color: {GREEN_ACT}; font-size: 10px;"
         )
         if self._stack.currentIndex() == 0:
             self._pg_dash.refresh(self._pg_movies._films, self._api_req)
@@ -265,6 +251,6 @@ class MainWindow(QMainWindow):
         )
 
     def closeEvent(self, e):
-        """Stop semua thread sebelum jendela ditutup — mencegah QThread warning."""
+        """Stop semua thread sebelum jendela ditutup — cegah QThread warning."""
         self._pg_movies._cleanup()
         super().closeEvent(e)

@@ -34,7 +34,7 @@ GENRE_LIST_EDIT = [
 ]
 
 
-# ── Dialog catatan ────────────────────────────────────────────────
+# Dialog catatan 
 class CatatanDialog(QDialog):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
@@ -94,7 +94,7 @@ class CatatanDialog(QDialog):
         }
 
 
-# ── Dialog detail film ────────────────────────────────────────────
+# Dialog detail film 
 class DetailDialog(QDialog):
     favorite_changed = Signal(str)
 
@@ -305,7 +305,7 @@ class DetailDialog(QDialog):
         super().closeEvent(e)
 
 
-# ── MoviesPage ────────────────────────────────────────────────────
+# MoviesPage 
 class MoviesPage(QWidget):
     favorite_changed = Signal(str)
 
@@ -322,7 +322,7 @@ class MoviesPage(QWidget):
         self._api_req       = 0
         self._build()
 
-    # ── Build UI ──────────────────────────────────────────────────
+    # Build UI 
 
     def _build(self):
         root = QVBoxLayout(self)
@@ -447,7 +447,7 @@ class MoviesPage(QWidget):
         row.addStretch()
         return row
 
-    # ── Fetch ─────────────────────────────────────────────────────
+    # Fetch
 
     def _initial_load(self):
         self._films.clear()
@@ -488,7 +488,7 @@ class MoviesPage(QWidget):
                 w.stop()
         self._img_workers.clear()
 
-    # ── Callbacks fetch ───────────────────────────────────────────
+    # Callbacks fetch 
 
     def _on_films(self, films: list):
         self._progress.hide()
@@ -524,7 +524,7 @@ class MoviesPage(QWidget):
         if box.exec() == QMessageBox.Retry:
             QTimer.singleShot(500, self._initial_load)
 
-    # ── Render grid ───────────────────────────────────────────────
+    # Render grid 
 
     def _render_grid(self):
         self._stop_img_workers()
@@ -570,7 +570,7 @@ class MoviesPage(QWidget):
             self._cards.append(card)
             self._lazy_load_poster(card, film)
 
-    # ── Image loading ─────────────────────────────────────────────
+    # Image loading 
 
     def _lazy_load_poster(self, card: MovieCard, film: dict):
         path = film.get("poster_path")
@@ -609,7 +609,7 @@ class MoviesPage(QWidget):
         w.start()
         self._img_workers.append(w)
 
-    # ── Interaksi ─────────────────────────────────────────────────
+    # Interaksi 
 
     def _toggle_fav(self, film: dict):
         tmdb_id  = film.get("id")
@@ -687,7 +687,7 @@ class MoviesPage(QWidget):
     def api_req(self):
         return self._api_req
 
-    # ── Cleanup saat widget dihapus ───────────────────────────────
+    # Cleanup saat widget dihapus 
 
     def closeEvent(self, e):
         self._cleanup()

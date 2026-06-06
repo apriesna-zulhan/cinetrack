@@ -11,7 +11,7 @@ from ui.theme import (BG_CARD, WHITE, GRAY_100, GRAY_200, GRAY_300,
                        GRAY_400, RED, GOLD, GREEN_ACT, GENRE_COLORS, GENRE_NAMES)
 
 CARD_W = 175
-CARD_H = 262 
+CARD_H = 262   # rasio poster ~2:3
 
 
 class MovieCard(QFrame):
@@ -30,7 +30,7 @@ class MovieCard(QFrame):
         self.data      = data
         self.tersimpan = tersimpan
         self._hovered  = False
-        self._pixmap   = None  
+        self._pixmap   = None   # QPixmap poster asli
 
         self.setFixedSize(CARD_W, CARD_H)
         self.setCursor(Qt.PointingHandCursor)
@@ -67,7 +67,7 @@ class MovieCard(QFrame):
         lay.addWidget(self._lbl_title)
         lay.addWidget(self._lbl_meta)
 
-    # Public API 
+    # ── Public API ──────────────────────────────────────────────────
     def set_poster(self, pixmap: QPixmap):
         self._pixmap = pixmap
         self.update()
@@ -76,7 +76,7 @@ class MovieCard(QFrame):
         self.tersimpan = v
         self.update()
 
-    # Events 
+    # ── Events ──────────────────────────────────────────────────────
     def enterEvent(self, e):
         self._hovered = True
         self.update()
@@ -100,7 +100,7 @@ class MovieCard(QFrame):
         path.addRoundedRect(0, 0, r.width(), r.height(), 8, 8)
         p.setClipPath(path)
 
-        # Poster / background 
+        # ── Poster / background ──
         if self._pixmap and not self._pixmap.isNull():
             scaled = self._pixmap.scaled(r.size(), Qt.KeepAspectRatioByExpanding,
                                           Qt.SmoothTransformation)
@@ -123,14 +123,14 @@ class MovieCard(QFrame):
             p.setPen(QColor(255, 255, 255, 80))
             p.drawText(r, Qt.AlignCenter, "⏳")
 
-        # Gradient overlay bawah (selalu) 
+        # ── Gradient overlay bawah (selalu) ──
         fade = QLinearGradient(0, r.height() - 130, 0, r.height())
         fade.setColorAt(0, QColor(0, 0, 0, 0))
         fade.setColorAt(0.4, QColor(0, 0, 0, 120))
         fade.setColorAt(1, QColor(0, 0, 0, 240))
         p.fillRect(r, QBrush(fade))
 
-        # Hover: overlay gelap tambahan
+        # ── Hover: overlay gelap tambahan ──
         if self._hovered:
             p.fillRect(r, QColor(0, 0, 0, 50))
 
@@ -143,7 +143,7 @@ class MovieCard(QFrame):
         p.setBrush(Qt.NoBrush)
         p.drawRoundedRect(1, 1, r.width()-2, r.height()-2, 7, 7)
 
-        # Badge tersimpan
+        # ── Badge tersimpan ──
         if self.tersimpan:
             p.setBrush(QBrush(QColor(RED)))
             p.setPen(Qt.NoPen)

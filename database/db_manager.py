@@ -35,7 +35,7 @@ class DatabaseManager:
         conn.row_factory = sqlite3.Row
         return conn
 
-    # CREATE 
+    # ── CREATE ──────────────────────────────────────────────────────
     def tambah(self, tmdb_id: int, judul: str, genre: str = "",
                 rating: float = 0.0, catatan: str = "",
                 poster_path: str = "", backdrop_path: str = "",
@@ -48,7 +48,7 @@ class DatabaseManager:
                                   poster_path, backdrop_path, overview, release_year))
             return cur.lastrowid
 
-    # READ 
+    # ── READ ────────────────────────────────────────────────────────
     def semua(self) -> list[dict]:
         with self._conn() as c:
             return [dict(r) for r in c.execute("SELECT * FROM favorit ORDER BY id DESC")]
@@ -77,7 +77,7 @@ class DatabaseManager:
             v = c.execute("SELECT AVG(rating) FROM favorit WHERE rating>0").fetchone()[0]
             return round(v, 1) if v else 0.0
 
-    # UPDATE 
+    # ── UPDATE ──────────────────────────────────────────────────────
     def update(self, fid: int, judul: str, genre: str,
                rating: float, catatan: str) -> bool:
         sql = "UPDATE favorit SET judul=?,genre=?,rating=?,catatan=? WHERE id=?"
