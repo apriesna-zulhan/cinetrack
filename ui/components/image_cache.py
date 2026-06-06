@@ -1,0 +1,24 @@
+"""
+ui/components/image_cache.py
+Cache gambar di memori agar poster tidak di-download ulang.
+"""
+from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QObject, Signal, QThreadPool, QRunnable, QMetaObject, Qt
+import requests
+
+_cache: dict[str, QPixmap] = {}
+
+
+def get_cached(url: str) -> QPixmap | None:
+    return _cache.get(url)
+
+
+def store(url: str, data: bytes) -> QPixmap:
+    px = QPixmap()
+    px.loadFromData(data)
+    _cache[url] = px
+    return px
+
+
+def is_cached(url: str) -> bool:
+    return url in _cache
