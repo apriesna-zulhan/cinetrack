@@ -33,8 +33,6 @@ GENRE_LIST_EDIT = [
     "Animasi","Romantis","Thriller","Petualangan","Fantasi","Lainnya"
 ]
 
-
-# Dialog catatan 
 class CatatanDialog(QDialog):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
@@ -93,8 +91,6 @@ class CatatanDialog(QDialog):
             "catatan": self.txt.toPlainText().strip(),
         }
 
-
-# Dialog detail film 
 class DetailDialog(QDialog):
     favorite_changed = Signal(str)
 
@@ -116,7 +112,6 @@ class DetailDialog(QDialog):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # Poster kiri
         self._poster_lbl = QLabel("⏳")
         self._poster_lbl.setFixedSize(240, 360)
         self._poster_lbl.setAlignment(Qt.AlignCenter)
@@ -124,7 +119,6 @@ class DetailDialog(QDialog):
         self._poster_lbl.setStyleSheet(f"background: {BG_SURFACE};")
         root.addWidget(self._poster_lbl)
 
-        # Info kanan
         right = QWidget()
         right.setStyleSheet(f"background: {BG_SURFACE};")
         rl = QVBoxLayout(right)
@@ -299,13 +293,10 @@ class DetailDialog(QDialog):
             )
 
     def closeEvent(self, e):
-        # Pastikan image worker berhenti saat dialog ditutup
         if self._img_worker and self._img_worker.isRunning():
             self._img_worker.stop()
         super().closeEvent(e)
 
-
-# MoviesPage 
 class MoviesPage(QWidget):
     favorite_changed = Signal(str)
 
@@ -321,8 +312,6 @@ class MoviesPage(QWidget):
         self._genre_id      = None
         self._api_req       = 0
         self._build()
-
-    # Build UI 
 
     def _build(self):
         root = QVBoxLayout(self)
@@ -345,13 +334,11 @@ class MoviesPage(QWidget):
         self._lay.setContentsMargins(0, 0, 0, 48)
         self._lay.setSpacing(0)
 
-        # Hero banner
         self._hero = HeroBanner()
         self._hero.klik_favorit.connect(self._toggle_fav)
         self._hero.klik_detail.connect(self._show_detail)
         self._lay.addWidget(self._hero)
 
-        # Konten di bawah hero
         konten = QWidget()
         konten.setStyleSheet(f"background: {BG_BASE};")
         kl = QVBoxLayout(konten)
@@ -446,9 +433,7 @@ class MoviesPage(QWidget):
             row.addWidget(btn)
         row.addStretch()
         return row
-
-    # Fetch
-
+    
     def _initial_load(self):
         self._films.clear()
         self._pages_loaded = 0
@@ -488,8 +473,6 @@ class MoviesPage(QWidget):
                 w.stop()
         self._img_workers.clear()
 
-    # Callbacks fetch 
-
     def _on_films(self, films: list):
         self._progress.hide()
         self._films = films
@@ -523,8 +506,6 @@ class MoviesPage(QWidget):
         box.setStandardButtons(QMessageBox.Retry | QMessageBox.Ok)
         if box.exec() == QMessageBox.Retry:
             QTimer.singleShot(500, self._initial_load)
-
-    # Render grid 
 
     def _render_grid(self):
         self._stop_img_workers()
@@ -570,8 +551,6 @@ class MoviesPage(QWidget):
             self._cards.append(card)
             self._lazy_load_poster(card, film)
 
-    # Image loading 
-
     def _lazy_load_poster(self, card: MovieCard, film: dict):
         path = film.get("poster_path")
         if not path:
@@ -584,7 +563,6 @@ class MoviesPage(QWidget):
             card.set_poster(px)
             return
         w = ImageWorker(self.client, url)
-        # Gunakan default argument agar closure menangkap nilai saat ini
         w.finished.connect(
             lambda u, data, c=card: c.set_poster(store(u, data))
         )
@@ -608,8 +586,6 @@ class MoviesPage(QWidget):
         )
         w.start()
         self._img_workers.append(w)
-
-    # Interaksi 
 
     def _toggle_fav(self, film: dict):
         tmdb_id  = film.get("id")
@@ -644,7 +620,7 @@ class MoviesPage(QWidget):
                     f'"{judul}" ditambahkan ke favorit ❤️'
                 )
             else:
-                return   # batal, jangan refresh kartu
+                return  
 
         fav_ids = self.db.tmdb_ids()
         for c in self._cards:
@@ -686,15 +662,12 @@ class MoviesPage(QWidget):
     @property
     def api_req(self):
         return self._api_req
-
-    # Cleanup saat widget dihapus 
-
+    
     def closeEvent(self, e):
         self._cleanup()
         super().closeEvent(e)
 
     def hideEvent(self, e):
-        # Tidak stop worker saat hide karena masih dipakai
         super().hideEvent(e)
 
     def _cleanup(self):

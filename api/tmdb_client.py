@@ -13,7 +13,6 @@ class TMDbClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.session = requests.Session()
-        # en-US: sinopsis selalu tersedia untuk semua film
         self.session.params = {"api_key": api_key, "language": "en-US"}
 
     def get_popular_movies(self, page: int = 1) -> dict:
@@ -24,7 +23,6 @@ class TMDbClient:
 
     def get_movie_detail(self, movie_id: int) -> dict:
         data = self._get(f"/movie/{movie_id}")
-        # Fallback: kalau sinopsis masih kosong, eksplisit minta en-US
         if not data.get("overview", "").strip():
             data = self._get(f"/movie/{movie_id}", {"language": "en-US"})
         return data

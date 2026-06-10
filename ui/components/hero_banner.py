@@ -3,11 +3,11 @@ ui/components/hero_banner.py
 Hero banner dengan backdrop asli dari TMDb + fade-to-black gradient.
 """
 from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget
-from PySide6.QtCore import Qt, Signal, QRect, QTimer
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (QPixmap, QPainter, QColor, QLinearGradient,
                             QBrush, QFont, QPainterPath)
 
-from ui.theme import (BG_BASE, WHITE, GRAY_100, GRAY_200, GRAY_300,
+from ui.theme import (BG_BASE, WHITE, GRAY_200,
                        RED, GOLD, GREEN_ACT, GENRE_NAMES, GENRE_COLORS)
 
 
@@ -31,7 +31,6 @@ class HeroBanner(QFrame):
         self._build()
 
     def _build(self):
-        # Content di atas layer gambar
         self._content = QWidget(self)
         self._content.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         cl = QVBoxLayout(self._content)

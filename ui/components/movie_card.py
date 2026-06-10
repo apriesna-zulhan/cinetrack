@@ -2,16 +2,16 @@
 ui/components/movie_card.py
 Kartu film Netflix-style dengan poster asli TMDb + hover scale effect.
 """
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy
-from PySide6.QtCore import Qt, Signal, QSize, QRect, QPropertyAnimation, QEasingCurve, QByteArray
+from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (QPixmap, QPainter, QColor, QLinearGradient, QBrush,
                             QPen, QFont, QPainterPath)
 
-from ui.theme import (BG_CARD, WHITE, GRAY_100, GRAY_200, GRAY_300,
+from ui.theme import (BG_CARD, WHITE, GRAY_200,
                        GRAY_400, RED, GOLD, GREEN_ACT, GENRE_COLORS, GENRE_NAMES)
 
 CARD_W = 175
-CARD_H = 262   # rasio poster ~2:3
+CARD_H = 262  
 
 
 class MovieCard(QFrame):
@@ -30,7 +30,7 @@ class MovieCard(QFrame):
         self.data      = data
         self.tersimpan = tersimpan
         self._hovered  = False
-        self._pixmap   = None   # QPixmap poster asli
+        self._pixmap   = None  
 
         self.setFixedSize(CARD_W, CARD_H)
         self.setCursor(Qt.PointingHandCursor)
@@ -67,7 +67,6 @@ class MovieCard(QFrame):
         lay.addWidget(self._lbl_title)
         lay.addWidget(self._lbl_meta)
 
-    # ── Public API ──────────────────────────────────────────────────
     def set_poster(self, pixmap: QPixmap):
         self._pixmap = pixmap
         self.update()
@@ -76,7 +75,6 @@ class MovieCard(QFrame):
         self.tersimpan = v
         self.update()
 
-    # ── Events ──────────────────────────────────────────────────────
     def enterEvent(self, e):
         self._hovered = True
         self.update()
@@ -95,12 +93,10 @@ class MovieCard(QFrame):
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         r = self.rect()
 
-        # Clip rounded
         path = QPainterPath()
         path.addRoundedRect(0, 0, r.width(), r.height(), 8, 8)
         p.setClipPath(path)
 
-        # ── Poster / background ──
         if self._pixmap and not self._pixmap.isNull():
             scaled = self._pixmap.scaled(r.size(), Qt.KeepAspectRatioByExpanding,
                                           Qt.SmoothTransformation)
@@ -108,7 +104,6 @@ class MovieCard(QFrame):
             y = (scaled.height() - r.height()) // 2
             p.drawPixmap(-x, -y, scaled)
         else:
-            # Placeholder gradient saat poster belum dimuat
             gids  = self.data.get("genre_ids", [])
             color = GENRE_COLORS.get(gids[0] if gids else 0, "#E50914")
             grad  = QLinearGradient(0, 0, 0, r.height())
@@ -118,32 +113,27 @@ class MovieCard(QFrame):
             grad.setColorAt(1, c2)
             p.fillRect(r, QColor(BG_CARD))
             p.fillRect(r, QBrush(grad))
-            # Loading text
             p.setFont(QFont("Segoe UI", 8))
             p.setPen(QColor(255, 255, 255, 80))
             p.drawText(r, Qt.AlignCenter, "⏳")
 
-        # ── Gradient overlay bawah (selalu) ──
         fade = QLinearGradient(0, r.height() - 130, 0, r.height())
         fade.setColorAt(0, QColor(0, 0, 0, 0))
         fade.setColorAt(0.4, QColor(0, 0, 0, 120))
         fade.setColorAt(1, QColor(0, 0, 0, 240))
         p.fillRect(r, QBrush(fade))
 
-        # ── Hover: overlay gelap tambahan ──
         if self._hovered:
             p.fillRect(r, QColor(0, 0, 0, 50))
 
         p.setClipping(False)
 
-        # ── Border ──
         border_color = QColor(RED) if self._hovered else QColor(50, 50, 50)
         pen = QPen(border_color, 2 if self._hovered else 1)
         p.setPen(pen)
         p.setBrush(Qt.NoBrush)
         p.drawRoundedRect(1, 1, r.width()-2, r.height()-2, 7, 7)
 
-        # ── Badge tersimpan ──
         if self.tersimpan:
             p.setBrush(QBrush(QColor(RED)))
             p.setPen(Qt.NoPen)

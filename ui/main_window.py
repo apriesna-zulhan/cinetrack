@@ -1,20 +1,27 @@
 """
-ui/main_window.py — MainWindow dengan cleanup thread yang benar.
+ui/main_window.py — MainWindow dengan Menu Bar, Status Bar NIM, dan navigasi sidebar.
 """
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QPushButton, QLabel, QFrame, QStackedWidget, QStatusBar
+    QPushButton, QLabel, QFrame, QStackedWidget, QStatusBar,
+    QMessageBox
 )
 from PySide6.QtCore import Qt, QTimer, QDateTime
-from PySide6.QtGui import QFont, QColor, QPainter, QBrush, QPen
+from PySide6.QtGui import QFont, QColor, QPainter, QPen, QAction
 
 from config import APP_NAME, APP_VERSION, WINDOW_W, WINDOW_H, TMDB_API_KEY
 from api.tmdb_client import TMDbClient
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.movies_page import MoviesPage
 from ui.pages.favorites_page import FavoritesPage
-from ui.theme import (QSS, BG_BASE, BG_SURFACE, WHITE, GRAY_200,
-                       GRAY_300, GRAY_400, RED, GOLD, GREEN_ACT, BORDER)
+from ui.theme import (BG_BASE, WHITE,
+                       GRAY_400, RED, GOLD, GREEN_ACT, BORDER)
+
+ANGGOTA = [
+    ("Anggota 1", "F1D023XXXXX"),
+    ("Anggota 2", "F1D023XXXXX"),
+    ("Anggota 3", "F1D023XXXXX"),
+]
 
 
 class NavButton(QPushButton):
@@ -46,7 +53,6 @@ class Sidebar(QFrame):
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
 
-        # Logo
         logo_f = QFrame()
         logo_f.setFixedHeight(72)
         logo_f.setStyleSheet(
@@ -95,7 +101,6 @@ class Sidebar(QFrame):
         lay.addWidget(self.btn_favorites)
         lay.addStretch()
 
-        # Info bawah
         info = QFrame()
         info.setStyleSheet(
             f"background: #0D0D0D; border-top: 1px solid {BORDER};"
@@ -161,11 +166,90 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} — Katalog Film Desktop")
         self.setMinimumSize(WINDOW_W, WINDOW_H)
-        self.setStyleSheet(QSS)
         self._client  = TMDbClient(TMDB_API_KEY)
         self._api_req = 0
+        self._build_menubar()
         self._build()
-        self._navigate(0)   
+        self._navigate(0)
+
+    def _build_menubar(self):
+        mb = self.menuBar()
+
+        menu_file = mb.addMenu("&File")
+
+        act_dashboard = QAction("⊞  Dashboard", self)
+        act_dashboard.setShortcut("Ctrl+1")
+        act_dashboard.triggered.connect(lambda: self._navigate(0))
+
+        act_movies = QAction("🎬  Film Populer", self)
+        act_movies.setShortcut("Ctrl+2")
+        act_movies.triggered.connect(lambda: self._navigate(1))
+
+        act_fav = QAction("❤️  Favorit Saya", self)
+        act_fav.setShortcut("Ctrl+3")
+        act_fav.triggered.connect(lambda: self._navigate(2))
+
+        act_exit = QAction("🚪  Keluar", self)
+        act_exit.setShortcut("Ctrl+Q")
+        act_exit.triggered.connect(self.close)
+
+        menu_file.addAction(act_dashboard)
+        menu_file.addAction(act_movies)
+        menu_file.addAction(act_fav)
+        menu_file.addSeparator()
+        menu_file.addAction(act_exit)
+
+        menu_export = mb.addMenu("&Export")
+
+        act_csv = QAction("📄  Export CSV", self)
+        act_csv.setShortcut("Ctrl+E")
+        act_csv.triggered.connect(self._export_csv)
+
+        act_pdf = QAction("📑  Export PDF", self)
+        act_pdf.setShortcut("Ctrl+Shift+E")
+        act_pdf.triggered.connect(self._export_pdf)
+
+        menu_export.addAction(act_csv)
+        menu_export.addAction(act_pdf)
+
+        menu_help = mb.addMenu("&Help")
+
+        act_about = QAction("ℹ️  Tentang CineTrack", self)
+        act_about.triggered.connect(self._show_about)
+
+        act_anggota = QAction("👥  Anggota Kelompok", self)
+        act_anggota.triggered.connect(self._show_anggota)
+
+        menu_help.addAction(act_about)
+        menu_help.addAction(act_anggota)
+
+    def _export_csv(self):
+        self._navigate(2)
+        self._pg_fav.do_export_csv()
+
+    def _export_pdf(self):
+        self._navigate(2)
+        self._pg_fav.do_export_pdf()
+
+    def _show_about(self):
+        QMessageBox.information(
+            self, f"Tentang {APP_NAME}",
+            f"<b>{APP_NAME} v{APP_VERSION}</b><br><br>"
+            "Aplikasi katalog film desktop berbasis PySide6.<br>"
+            "Data film dari <b>TMDb API v3</b>, disimpan lokal dengan <b>SQLite</b>.<br><br>"
+            "Fitur: Dashboard · Film Populer · Favorit · Export CSV/PDF<br>"
+            "Chart: QtCharts · Thread: QThread · Theme: Netflix Dark"
+        )
+
+    def _show_anggota(self):
+        lines = "<br>".join(
+            f"&nbsp;&nbsp;• <b>{n}</b> &nbsp;—&nbsp; NIM {nim}"
+            for n, nim in ANGGOTA
+        )
+        QMessageBox.information(
+            self, "👥  Anggota Kelompok",
+            f"<b>Kelompok CineTrack</b><br><br>{lines}"
+        )
 
     def _build(self):
         central = QWidget()
@@ -200,17 +284,29 @@ class MainWindow(QMainWindow):
         self._pg_movies.favorite_changed.connect(self._on_fav_changed)
         self._pg_fav    = FavoritesPage(self._client)
 
-        self._stack.addWidget(self._pg_dash)    # 0
-        self._stack.addWidget(self._pg_movies)  # 1
-        self._stack.addWidget(self._pg_fav)     # 2
+        self._stack.addWidget(self._pg_dash)    
+        self._stack.addWidget(self._pg_movies)  
+        self._stack.addWidget(self._pg_fav)     
 
         rl.addWidget(self._stack)
         root.addWidget(right, stretch=1)
 
         self._sb = QStatusBar()
+        self._sb.setSizeGripEnabled(False)
         self.setStatusBar(self._sb)
-        self._update_status()
 
+        nim_text = "  👥  " + "   |   ".join(
+            f"{n}  ({nim})" for n, nim in ANGGOTA
+        )
+        lbl_nim = QLabel(nim_text)
+        lbl_nim.setStyleSheet("color: #4DA3FF; font-size: 10px;")
+        self._sb.addPermanentWidget(lbl_nim)
+
+        self._lbl_time = QLabel()
+        self._lbl_time.setStyleSheet("color: #4A4A4A; font-size: 10px;")
+        self._sb.addWidget(self._lbl_time)
+
+        self._update_status()
         t = QTimer(self)
         t.timeout.connect(self._update_status)
         t.start(60_000)
@@ -245,12 +341,8 @@ class MainWindow(QMainWindow):
 
     def _update_status(self):
         now = QDateTime.currentDateTime().toString("ddd, d MMM yyyy · HH:mm")
-        self._sb.showMessage(
-            f"  📅 {now}   ·   TMDb API v3   ·   "
-            f"SQLite Lokal   ·   Python 3 · PySide6 6.x"
-        )
+        self._lbl_time.setText(f"  📅 {now}   ·   TMDb API v3   ·   PySide6 6.x  ")
 
     def closeEvent(self, e):
-        """Stop semua thread sebelum jendela ditutup — cegah QThread warning."""
         self._pg_movies._cleanup()
         super().closeEvent(e)

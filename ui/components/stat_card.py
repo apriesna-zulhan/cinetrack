@@ -1,11 +1,11 @@
 """
 ui/components/stat_card.py — Widget kartu statistik dashboard.
 """
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy
+from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QSizePolicy
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QColor, QPainter, QPen, QBrush, QLinearGradient
 
-from ui.theme import BG_SURFACE, BORDER, WHITE, GRAY_100, GRAY_200, GRAY_300
+from ui.theme import BG_SURFACE, BORDER, WHITE, GRAY_300
 
 
 class StatCard(QFrame):

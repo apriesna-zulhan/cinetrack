@@ -3,8 +3,6 @@ ui/components/image_cache.py
 Cache gambar di memori agar poster tidak di-download ulang.
 """
 from PySide6.QtGui import QPixmap
-from PySide6.QtCore import QObject, Signal, QThreadPool, QRunnable, QMetaObject, Qt
-import requests
 
 _cache: dict[str, QPixmap] = {}
 
