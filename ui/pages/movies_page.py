@@ -34,7 +34,30 @@ GENRE_LIST_EDIT = [
 ]
 
 
-# Dialog catatan 
+def _spin_row(spin: QDoubleSpinBox) -> QHBoxLayout:
+    spin.setButtonSymbols(QDoubleSpinBox.NoButtons)
+    spin.setFixedWidth(80)
+    row = QHBoxLayout()
+    row.setSpacing(6)
+    btn_m = QPushButton("−")
+    btn_m.setObjectName("btn_ghost")
+    btn_m.setFixedSize(32, 32)
+    btn_m.clicked.connect(
+        lambda: spin.setValue(round(max(0.0, spin.value() - 0.1), 1))
+    )
+    btn_p = QPushButton("+")
+    btn_p.setObjectName("btn_ghost")
+    btn_p.setFixedSize(32, 32)
+    btn_p.clicked.connect(
+        lambda: spin.setValue(round(min(10.0, spin.value() + 0.1), 1))
+    )
+    row.addWidget(btn_m)
+    row.addWidget(spin)
+    row.addWidget(btn_p)
+    row.addStretch()
+    return row
+
+
 class CatatanDialog(QDialog):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
@@ -69,7 +92,7 @@ class CatatanDialog(QDialog):
         self.spin.setSingleStep(0.1)
         self.spin.setDecimals(1)
         self.spin.setValue(float(data.get("rating", 0)))
-        form.addRow("Rating Pribadi (0–10)", self.spin)
+        form.addRow("Rating Pribadi (0–10)", _spin_row(self.spin))
 
         self.txt = QTextEdit()
         self.txt.setPlainText(data.get("catatan", ""))
@@ -94,16 +117,15 @@ class CatatanDialog(QDialog):
         }
 
 
-# Dialog detail film 
 class DetailDialog(QDialog):
     favorite_changed = Signal(str)
 
     def __init__(self, film: dict, db: DatabaseManager, client, parent=None):
         super().__init__(parent)
-        self.film       = film
-        self.db         = db
-        self.client     = client
-        self._fav       = db.by_tmdb(film.get("id"))
+        self.film        = film
+        self.db          = db
+        self.client      = client
+        self._fav        = db.by_tmdb(film.get("id"))
         self._img_worker = None
         self.setWindowTitle(film.get("title", "Detail Film"))
         self.setMinimumSize(720, 480)
@@ -116,7 +138,6 @@ class DetailDialog(QDialog):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # Poster kiri
         self._poster_lbl = QLabel("⏳")
         self._poster_lbl.setFixedSize(240, 360)
         self._poster_lbl.setAlignment(Qt.AlignCenter)
@@ -124,7 +145,6 @@ class DetailDialog(QDialog):
         self._poster_lbl.setStyleSheet(f"background: {BG_SURFACE};")
         root.addWidget(self._poster_lbl)
 
-        # Info kanan
         right = QWidget()
         right.setStyleSheet(f"background: {BG_SURFACE};")
         rl = QVBoxLayout(right)
@@ -150,9 +170,7 @@ class DetailDialog(QDialog):
         )
         rl.addWidget(lbl_m)
 
-        desc = self.film.get("overview", "").strip()
-        if not desc:
-            desc = "Sinopsis tidak tersedia untuk film ini."
+        desc = self.film.get("overview", "").strip() or "Sinopsis tidak tersedia."
         lbl_d = QLabel(desc)
         lbl_d.setStyleSheet(
             f"color: {GRAY_200}; font-size: 12px; background: transparent;"
@@ -184,11 +202,10 @@ class DetailDialog(QDialog):
         self._spin.setRange(0, 10)
         self._spin.setSingleStep(0.1)
         self._spin.setDecimals(1)
-        self._spin.setFixedWidth(100)
         self._spin.setValue(
             float(self._fav.get("rating", 0)) if self._fav else rating
         )
-        rl.addWidget(self._spin)
+        rl.addLayout(_spin_row(self._spin))
 
         rl.addStretch()
 
@@ -299,13 +316,11 @@ class DetailDialog(QDialog):
             )
 
     def closeEvent(self, e):
-        # Pastikan image worker berhenti saat dialog ditutup
         if self._img_worker and self._img_worker.isRunning():
             self._img_worker.stop()
         super().closeEvent(e)
 
 
-# MoviesPage 
 class MoviesPage(QWidget):
     favorite_changed = Signal(str)
 
@@ -316,13 +331,11 @@ class MoviesPage(QWidget):
         self._films: list[dict] = []
         self._cards: list[MovieCard] = []
         self._img_workers: list[ImageWorker] = []
-        self._fetch_worker: MovieFetchWorker | None = None
+        self._fetch_worker  = None
         self._pages_loaded  = 0
         self._genre_id      = None
         self._api_req       = 0
         self._build()
-
-    # Build UI 
 
     def _build(self):
         root = QVBoxLayout(self)
@@ -345,13 +358,11 @@ class MoviesPage(QWidget):
         self._lay.setContentsMargins(0, 0, 0, 48)
         self._lay.setSpacing(0)
 
-        # Hero banner
         self._hero = HeroBanner()
         self._hero.klik_favorit.connect(self._toggle_fav)
         self._hero.klik_detail.connect(self._show_detail)
         self._lay.addWidget(self._hero)
 
-        # Konten di bawah hero
         konten = QWidget()
         konten.setStyleSheet(f"background: {BG_BASE};")
         kl = QVBoxLayout(konten)
@@ -467,9 +478,7 @@ class MoviesPage(QWidget):
         self._fetch_worker.finished.connect(self._on_films)
         self._fetch_worker.error.connect(self._on_error)
         self._fetch_worker.progress.connect(
-            lambda d, t: self._lbl_info.setText(
-                f"⏳  Memuat halaman {d}/{t}..."
-            )
+            lambda d, t: self._lbl_info.setText(f"⏳  Memuat halaman {d}/{t}...")
         )
         self._fetch_worker.start()
         self._api_req += 1
@@ -633,7 +642,7 @@ class MoviesPage(QWidget):
                     f'"{judul}" ditambahkan ke favorit ❤️'
                 )
             else:
-                return  
+                return
 
         fav_ids = self.db.tmdb_ids()
         for c in self._cards:

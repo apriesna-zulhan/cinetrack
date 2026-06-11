@@ -1,9 +1,5 @@
-"""
-ui/components/movie_card.py
-Kartu film Netflix-style dengan poster asli TMDb + hover scale effect.
-"""
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QRect
 from PySide6.QtGui import (QPixmap, QPainter, QColor, QLinearGradient, QBrush,
                             QPen, QFont, QPainterPath)
 
@@ -11,17 +7,10 @@ from ui.theme import (BG_CARD, WHITE, GRAY_200,
                        GRAY_400, RED, GOLD, GREEN_ACT, GENRE_COLORS, GENRE_NAMES)
 
 CARD_W = 175
-CARD_H = 262  
+CARD_H = 262
 
 
 class MovieCard(QFrame):
-    """
-    Kartu film dengan:
-    - Poster asli dari TMDb (di-set via set_poster())
-    - Overlay gradient + info muncul saat hover
-    - Hover effect: border merah + shadow
-    - Signal klik_simpan dan klik_detail
-    """
     klik_simpan = Signal(dict)
     klik_detail = Signal(dict)
 
@@ -30,7 +19,7 @@ class MovieCard(QFrame):
         self.data      = data
         self.tersimpan = tersimpan
         self._hovered  = False
-        self._pixmap   = None  
+        self._pixmap   = None
 
         self.setFixedSize(CARD_W, CARD_H)
         self.setCursor(Qt.PointingHandCursor)
@@ -38,7 +27,6 @@ class MovieCard(QFrame):
         self._build_overlay()
 
     def _build_overlay(self):
-        """Widget info yang muncul saat hover (di atas poster)."""
         self._overlay = QFrame(self)
         self._overlay.setGeometry(0, CARD_H - 110, CARD_W, 110)
         self._overlay.setStyleSheet("background: transparent;")
@@ -128,16 +116,20 @@ class MovieCard(QFrame):
 
         p.setClipping(False)
 
-        border_color = QColor(RED) if self._hovered else QColor(50, 50, 50)
+        border_color = QColor(RED) if self._hovered else QColor(180, 180, 180)
         pen = QPen(border_color, 2 if self._hovered else 1)
         p.setPen(pen)
         p.setBrush(Qt.NoBrush)
         p.drawRoundedRect(1, 1, r.width()-2, r.height()-2, 7, 7)
 
+        # ── Badge bintang (tanpa kotak, langsung teks) ──
         if self.tersimpan:
-            p.setBrush(QBrush(QColor(RED)))
-            p.setPen(Qt.NoPen)
-            p.drawRoundedRect(r.width()-30, 8, 22, 22, 11, 11)
-            p.setFont(QFont("Segoe UI Emoji", 9))
-            p.setPen(Qt.white)
-            p.drawText(QRect(r.width()-30, 8, 22, 22), Qt.AlignCenter, "♥")
+            font = QFont("Segoe UI Emoji", 15)
+            p.setFont(font)
+            rect_badge = QRect(r.width()-32, 4, 28, 28)
+            # shadow
+            p.setPen(QColor(0, 0, 0, 120))
+            p.drawText(rect_badge.adjusted(1, 1, 1, 1), Qt.AlignCenter, "⭐")
+            # bintang utama
+            p.setPen(QColor("#F5C518"))
+            p.drawText(rect_badge, Qt.AlignCenter, "⭐")

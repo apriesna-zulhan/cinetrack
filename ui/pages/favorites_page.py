@@ -31,7 +31,7 @@ SORT_OPTIONS = [
 TABLE_COLS = ["#", "Judul", "Genre", "Rating", "Tahun", "Catatan", "Ditambahkan"]
 
 
-def _preview_pixmap(path: str, w: int, h: int) -> QPixmap | None:
+def _preview_pixmap(path: str, w: int, h: int):
     if path and os.path.isfile(path):
         px = QPixmap(path)
         if not px.isNull():
@@ -68,6 +68,26 @@ def _make_preview_lbl() -> QLabel:
     lbl.setFont(QFont("Segoe UI Emoji", 28))
     lbl.setStyleSheet(f"background:{BG_CARD}; border:1px dashed {GRAY_400}; border-radius:6px; color:{GRAY_300};")
     return lbl
+
+
+def _spin_row(spin: QDoubleSpinBox) -> QHBoxLayout:
+    spin.setButtonSymbols(QDoubleSpinBox.NoButtons)
+    spin.setFixedWidth(80)
+    row = QHBoxLayout()
+    row.setSpacing(6)
+    btn_m = QPushButton("−")
+    btn_m.setObjectName("btn_ghost")
+    btn_m.setFixedSize(32, 32)
+    btn_m.clicked.connect(lambda: spin.setValue(round(max(0.0, spin.value() - 0.1), 1)))
+    btn_p = QPushButton("+")
+    btn_p.setObjectName("btn_ghost")
+    btn_p.setFixedSize(32, 32)
+    btn_p.clicked.connect(lambda: spin.setValue(round(min(10.0, spin.value() + 0.1), 1)))
+    row.addWidget(btn_m)
+    row.addWidget(spin)
+    row.addWidget(btn_p)
+    row.addStretch()
+    return row
 
 
 class EditDialog(QDialog):
@@ -114,7 +134,7 @@ class EditDialog(QDialog):
         self.spin.setSingleStep(0.1)
         self.spin.setDecimals(1)
         self.spin.setValue(float(data.get("rating", 0)))
-        form.addRow("Rating (0–10)", self.spin)
+        form.addRow("Rating (0–10)", _spin_row(self.spin))
 
         self.tahun_edit = QLineEdit()
         self.tahun_edit.setMaxLength(4)
@@ -240,7 +260,7 @@ class TambahManualDialog(QDialog):
         self.spin.setSingleStep(0.1)
         self.spin.setDecimals(1)
         self.spin.setValue(0.0)
-        form.addRow("Rating (0–10)", self.spin)
+        form.addRow("Rating (0–10)", _spin_row(self.spin))
 
         self.tahun_edit = QLineEdit()
         self.tahun_edit.setPlaceholderText("contoh: 2023")
@@ -426,13 +446,11 @@ class FavDetailDialog(QDialog):
 
     def _load_poster(self):
         path = self._data.get("poster_path", "") or ""
-
         if os.path.isfile(path):
             px = QPixmap(path)
             if not px.isNull():
                 self._set_poster(px)
             return
-
         if not self._client or not path:
             return
         url = self._client.poster_url(path, "w500")
@@ -607,13 +625,11 @@ class FavCard(QFrame):
 
     def _load_poster(self, d: dict):
         path = d.get("poster_path", "") or ""
-
         if os.path.isfile(path):
             px = QPixmap(path)
             if not px.isNull():
                 self._set_poster(px)
             return
-
         if not self.client or not path:
             return
         url = self.client.poster_url(path, "w500")
@@ -810,10 +826,8 @@ class FavoritesPage(QWidget):
     def _apply_filter(self):
         q    = self._search.text().strip().lower()
         data = self._all_data
-
         if q:
             data = [d for d in data if q in d.get("judul", "").lower()]
-
         sort_key = SORT_OPTIONS[self._combo_sort.currentIndex()][1]
         if sort_key == "id_desc":
             data = sorted(data, key=lambda x: x["id"], reverse=True)
@@ -827,7 +841,6 @@ class FavoritesPage(QWidget):
             data = sorted(data, key=lambda x: x.get("judul", "").lower())
         elif sort_key == "judul_desc":
             data = sorted(data, key=lambda x: x.get("judul", "").lower(), reverse=True)
-
         self._render_cards(data)
         self._render_table(data)
 
@@ -836,7 +849,6 @@ class FavoritesPage(QWidget):
             item = self._list_lay.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-
         if not data:
             q   = self._search.text().strip()
             msg = (f"🔍  Tidak ada film yang cocok dengan \"{q}\"."
@@ -857,12 +869,10 @@ class FavoritesPage(QWidget):
     def _render_table(self, data: list[dict]):
         self._table.setSortingEnabled(False)
         self._table.setRowCount(len(data))
-
         for row, d in enumerate(data):
             rating = float(d.get("rating", 0))
             rc = (GREEN_ACT if rating >= 8 else GOLD if rating >= 6.5 else
                   "#ff6b35" if rating >= 5 else GRAY_300)
-
             values = [
                 str(row + 1),
                 d.get("judul", ""),
@@ -872,7 +882,6 @@ class FavoritesPage(QWidget):
                 (d.get("catatan", "") or "")[:50],
                 d.get("tanggal_tambah", "–"),
             ]
-
             for col, val in enumerate(values):
                 item = QTableWidgetItem(val)
                 item.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
@@ -881,7 +890,6 @@ class FavoritesPage(QWidget):
                     item.setFont(QFont("Consolas", 11, QFont.Bold))
                 item.setData(Qt.UserRole, d.get("id"))
                 self._table.setItem(row, col, item)
-
         self._table.setColumnWidth(0, 40)
         self._table.setColumnWidth(2, 100)
         self._table.setColumnWidth(3, 70)
@@ -928,10 +936,7 @@ class FavoritesPage(QWidget):
             d = dlg.get_data()
             self.db.update(
                 fid,
-                d["judul"],
-                d["genre"],
-                d["rating"],
-                d["catatan"],
+                d["judul"], d["genre"], d["rating"], d["catatan"],
                 release_year=d["release_year"],
                 poster_path=d["poster_path"],
             )
