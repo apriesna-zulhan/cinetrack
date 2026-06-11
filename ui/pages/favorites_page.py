@@ -1,8 +1,3 @@
-"""
-ui/pages/favorites_page.py
-Halaman FAVORIT — CRUD lengkap + Search + Sort + Export CSV/PDF
-                 + Toggle Card View / Table View (QTableWidget)
-"""
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QScrollArea, QFrame, QMessageBox, QDialog, QFormLayout,
@@ -12,13 +7,14 @@ from PySide6.QtWidgets import (
     QStackedWidget
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import (QFont, QPixmap, QColor, QCursor)
+from PySide6.QtGui import QFont, QPixmap, QColor, QCursor
+import os
 
 from database.db_manager import DatabaseManager
 from ui.components.image_cache import get_cached, store
-from ui.theme import (BG_BASE, BG_SURFACE, BG_CARD, WHITE, GRAY_100,
+from ui.theme import (BG_BASE, BG_SURFACE, BG_CARD, WHITE,
                        GRAY_200, GRAY_300, GRAY_400, RED, GOLD, GREEN_ACT,
-                       BORDER, GENRE_COLORS)
+                       BORDER)
 
 GENRE_LIST = ["Film","Aksi","Drama","Komedi","Horor","Sci-Fi",
               "Animasi","Romantis","Thriller","Petualangan","Fantasi","Lainnya"]
@@ -32,17 +28,56 @@ SORT_OPTIONS = [
     ("Judul Z–A",           "judul_desc"),
 ]
 
-# Kolom QTableWidget
 TABLE_COLS = ["#", "Judul", "Genre", "Rating", "Tahun", "Catatan", "Ditambahkan"]
 
 
-# ── Dialog Edit ───────────────────────────────────────────────────
+def _preview_pixmap(path: str, w: int, h: int) -> QPixmap | None:
+    if path and os.path.isfile(path):
+        px = QPixmap(path)
+        if not px.isNull():
+            return px.scaled(w, h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    return None
+
+
+def _make_img_panel(preview_lbl: QLabel, pilih_fn, hapus_fn) -> QVBoxLayout:
+    lay = QVBoxLayout()
+    lay.setSpacing(8)
+    lay.setAlignment(Qt.AlignTop)
+    lbl = QLabel("Poster")
+    lbl.setStyleSheet(f"color:{GRAY_300}; font-size:11px; font-weight:600;")
+    btn_p = QPushButton("📁  Pilih Gambar")
+    btn_p.setObjectName("btn_ghost")
+    btn_p.setFixedWidth(120)
+    btn_p.clicked.connect(pilih_fn)
+    btn_h = QPushButton("✕  Hapus")
+    btn_h.setObjectName("btn_ghost")
+    btn_h.setFixedWidth(120)
+    btn_h.clicked.connect(hapus_fn)
+    lay.addWidget(lbl)
+    lay.addWidget(preview_lbl)
+    lay.addWidget(btn_p)
+    lay.addWidget(btn_h)
+    return lay
+
+
+def _make_preview_lbl() -> QLabel:
+    lbl = QLabel()
+    lbl.setFixedSize(120, 180)
+    lbl.setAlignment(Qt.AlignCenter)
+    lbl.setText("🎬")
+    lbl.setFont(QFont("Segoe UI Emoji", 28))
+    lbl.setStyleSheet(f"background:{BG_CARD}; border:1px dashed {GRAY_400}; border-radius:6px; color:{GRAY_300};")
+    return lbl
+
+
 class EditDialog(QDialog):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("✏️  Edit Film Favorit")
-        self.setMinimumWidth(440)
+        self.setMinimumWidth(520)
         self.setModal(True)
+        self._poster_path = data.get("poster_path", "") or ""
+
         lay = QVBoxLayout(self)
         lay.setSpacing(14)
         lay.setContentsMargins(24, 24, 24, 24)
@@ -57,8 +92,16 @@ class EditDialog(QDialog):
         sep.setStyleSheet(f"border:none;border-top:1px solid {BORDER};")
         lay.addWidget(sep)
 
+        body = QHBoxLayout()
+        body.setSpacing(16)
+
         form = QFormLayout()
         form.setSpacing(10)
+
+        self.judul_edit = QLineEdit()
+        self.judul_edit.setMaxLength(100)
+        self.judul_edit.setText(data.get("judul", ""))
+        form.addRow("Judul *", self.judul_edit)
 
         self.combo = QComboBox()
         self.combo.addItems(GENRE_LIST)
@@ -73,20 +116,69 @@ class EditDialog(QDialog):
         self.spin.setValue(float(data.get("rating", 0)))
         form.addRow("Rating (0–10)", self.spin)
 
+        self.tahun_edit = QLineEdit()
+        self.tahun_edit.setMaxLength(4)
+        self.tahun_edit.setPlaceholderText("contoh: 2023")
+        self.tahun_edit.setText(data.get("release_year", "") or "")
+        form.addRow("Tahun Rilis", self.tahun_edit)
+
         self.txt = QTextEdit()
         self.txt.setPlainText(data.get("catatan", ""))
-        self.txt.setFixedHeight(90)
+        self.txt.setFixedHeight(80)
         self.txt.setPlaceholderText("Tulis catatan pribadi...")
         form.addRow("Catatan", self.txt)
 
-        lay.addLayout(form)
+        body.addLayout(form, stretch=1)
+
+        self._img_preview = _make_preview_lbl()
+        px = _preview_pixmap(self._poster_path, 120, 180)
+        if px:
+            self._img_preview.setPixmap(px)
+            self._img_preview.setText("")
+
+        body.addLayout(_make_img_panel(self._img_preview, self._pilih_gambar, self._hapus_gambar))
+        lay.addLayout(body)
+
+        lbl_req = QLabel("* Wajib diisi  ·  Format gambar: JPG, PNG, BMP, WEBP")
+        lbl_req.setStyleSheet(f"color:{GRAY_400}; font-size:10px;")
+        lay.addWidget(lbl_req)
 
         btns = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         btns.accepted.connect(self._validate_and_accept)
         btns.rejected.connect(self.reject)
         lay.addWidget(btns)
 
+    def _pilih_gambar(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Pilih Gambar Poster", "",
+            "Gambar (*.jpg *.jpeg *.png *.bmp *.webp)"
+        )
+        if not path:
+            return
+        self._poster_path = path
+        px = _preview_pixmap(path, 120, 180)
+        if px:
+            self._img_preview.setPixmap(px)
+            self._img_preview.setText("")
+
+    def _hapus_gambar(self):
+        self._poster_path = ""
+        self._img_preview.clear()
+        self._img_preview.setText("🎬")
+
     def _validate_and_accept(self):
+        judul = self.judul_edit.text().strip()
+        if not judul:
+            QMessageBox.warning(self, "Validasi", "Judul film tidak boleh kosong.")
+            self.judul_edit.setFocus()
+            return
+        if len(judul) < 2:
+            QMessageBox.warning(self, "Validasi", "Judul film minimal 2 karakter.")
+            return
+        tahun = self.tahun_edit.text().strip()
+        if tahun and (not tahun.isdigit() or not (1888 <= int(tahun) <= 2100)):
+            QMessageBox.warning(self, "Validasi", "Tahun rilis tidak valid (1888–2100).")
+            return
         if not (0 <= self.spin.value() <= 10):
             QMessageBox.warning(self, "Validasi", "Rating harus antara 0 hingga 10.")
             return
@@ -97,19 +189,23 @@ class EditDialog(QDialog):
 
     def get_data(self) -> dict:
         return {
-            "genre":   self.combo.currentText(),
-            "rating":  self.spin.value(),
-            "catatan": self.txt.toPlainText().strip(),
+            "judul":        self.judul_edit.text().strip(),
+            "genre":        self.combo.currentText(),
+            "rating":       self.spin.value(),
+            "release_year": self.tahun_edit.text().strip(),
+            "catatan":      self.txt.toPlainText().strip(),
+            "poster_path":  self._poster_path,
         }
 
 
-# ── Dialog Tambah Manual ──────────────────────────────────────────
 class TambahManualDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("➕  Tambah Film Manual")
-        self.setMinimumWidth(440)
+        self.setWindowTitle("➕  Tambah Film Favorite")
+        self.setMinimumWidth(520)
         self.setModal(True)
+        self._poster_path = ""
+
         lay = QVBoxLayout(self)
         lay.setSpacing(14)
         lay.setContentsMargins(24, 24, 24, 24)
@@ -123,6 +219,9 @@ class TambahManualDialog(QDialog):
         sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet(f"border:none;border-top:1px solid {BORDER};")
         lay.addWidget(sep)
+
+        body = QHBoxLayout()
+        body.setSpacing(16)
 
         form = QFormLayout()
         form.setSpacing(10)
@@ -153,9 +252,13 @@ class TambahManualDialog(QDialog):
         self.txt.setPlaceholderText("Tulis catatan pribadi (opsional)...")
         form.addRow("Catatan", self.txt)
 
-        lay.addLayout(form)
+        body.addLayout(form, stretch=1)
 
-        lbl_req = QLabel("* Wajib diisi")
+        self._img_preview = _make_preview_lbl()
+        body.addLayout(_make_img_panel(self._img_preview, self._pilih_gambar, self._hapus_gambar))
+        lay.addLayout(body)
+
+        lbl_req = QLabel("* Wajib diisi  ·  Format gambar: JPG, PNG, BMP, WEBP")
         lbl_req.setStyleSheet(f"color:{GRAY_400}; font-size:10px;")
         lay.addWidget(lbl_req)
 
@@ -163,6 +266,24 @@ class TambahManualDialog(QDialog):
         btns.accepted.connect(self._validate_and_accept)
         btns.rejected.connect(self.reject)
         lay.addWidget(btns)
+
+    def _pilih_gambar(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Pilih Gambar Poster", "",
+            "Gambar (*.jpg *.jpeg *.png *.bmp *.webp)"
+        )
+        if not path:
+            return
+        self._poster_path = path
+        px = _preview_pixmap(path, 120, 180)
+        if px:
+            self._img_preview.setPixmap(px)
+            self._img_preview.setText("")
+
+    def _hapus_gambar(self):
+        self._poster_path = ""
+        self._img_preview.clear()
+        self._img_preview.setText("🎬")
 
     def _validate_and_accept(self):
         judul = self.judul_edit.text().strip()
@@ -189,18 +310,18 @@ class TambahManualDialog(QDialog):
             "rating":       self.spin.value(),
             "release_year": self.tahun_edit.text().strip(),
             "catatan":      self.txt.toPlainText().strip(),
+            "poster_path":  self._poster_path,
         }
 
 
-# ── Dialog Detail Favorit ─────────────────────────────────────────
 class FavDetailDialog(QDialog):
     data_changed = Signal()
 
     def __init__(self, data: dict, db: DatabaseManager, client=None, parent=None):
         super().__init__(parent)
-        self._data   = data
-        self._db     = db
-        self._client = client
+        self._data       = data
+        self._db         = db
+        self._client     = client
         self._img_worker = None
         self.setWindowTitle(data.get("judul", "Detail Film"))
         self.setMinimumSize(720, 460)
@@ -217,11 +338,11 @@ class FavDetailDialog(QDialog):
         self._poster_lbl.setFixedSize(220, 330)
         self._poster_lbl.setAlignment(Qt.AlignCenter)
         self._poster_lbl.setFont(QFont("Segoe UI Emoji", 36))
-        self._poster_lbl.setStyleSheet(f"background: {BG_CARD}; border-radius: 0;")
+        self._poster_lbl.setStyleSheet(f"background:{BG_CARD}; border-radius:0;")
         root.addWidget(self._poster_lbl)
 
-        right = QWidget()
-        right.setStyleSheet(f"background: {BG_SURFACE};")
+        right = QFrame()
+        right.setStyleSheet(f"background:{BG_SURFACE};")
         rl = QVBoxLayout(right)
         rl.setContentsMargins(28, 28, 28, 28)
         rl.setSpacing(10)
@@ -269,7 +390,6 @@ class FavDetailDialog(QDialog):
         self._txt.setPlainText(self._data.get("catatan", "").strip())
         self._txt.setPlaceholderText("Tulis catatan atau kesan pribadi...")
         rl.addWidget(self._txt)
-
         rl.addStretch()
 
         row_btn = QHBoxLayout()
@@ -285,7 +405,7 @@ class FavDetailDialog(QDialog):
         btn_edit.setFixedHeight(38)
         btn_edit.clicked.connect(self._edit)
 
-        btn_hapus = QPushButton("🗑️  Hapus Favorit")
+        btn_hapus = QPushButton("🗑️  Hapus")
         btn_hapus.setObjectName("btn_danger")
         btn_hapus.setFixedHeight(38)
         btn_hapus.clicked.connect(self._hapus)
@@ -305,10 +425,15 @@ class FavDetailDialog(QDialog):
         root.addWidget(right, stretch=1)
 
     def _load_poster(self):
-        if not self._client:
+        path = self._data.get("poster_path", "") or ""
+
+        if os.path.isfile(path):
+            px = QPixmap(path)
+            if not px.isNull():
+                self._set_poster(px)
             return
-        path = self._data.get("poster_path", "")
-        if not path:
+
+        if not self._client or not path:
             return
         url = self._client.poster_url(path, "w500")
         if not url:
@@ -336,8 +461,12 @@ class FavDetailDialog(QDialog):
             QMessageBox.warning(self, "Validasi", "Catatan maksimal 500 karakter.")
             return
         self._db.update(
-            self._data["id"], self._data.get("judul", ""),
-            self._data.get("genre", ""), float(self._data.get("rating", 0)), catatan,
+            self._data["id"],
+            self._data.get("judul", ""),
+            self._data.get("genre", ""),
+            float(self._data.get("rating", 0)),
+            catatan,
+            release_year=self._data.get("release_year", "") or "",
         )
         QMessageBox.information(self, "Tersimpan", "Catatan berhasil disimpan! 💾")
         self.data_changed.emit()
@@ -346,8 +475,12 @@ class FavDetailDialog(QDialog):
         dlg = EditDialog(self._data, self)
         if dlg.exec() == QDialog.Accepted:
             d = dlg.get_data()
-            self._db.update(self._data["id"], self._data.get("judul", ""),
-                            d["genre"], d["rating"], d["catatan"])
+            self._db.update(
+                self._data["id"],
+                d["judul"], d["genre"], d["rating"], d["catatan"],
+                release_year=d["release_year"],
+                poster_path=d["poster_path"],
+            )
             self.data_changed.emit()
             self.accept()
 
@@ -369,7 +502,6 @@ class FavDetailDialog(QDialog):
         super().closeEvent(e)
 
 
-# ── FavCard ───────────────────────────────────────────────────────
 class FavCard(QFrame):
     klik_card  = Signal(dict)
     klik_edit  = Signal(int)
@@ -395,7 +527,7 @@ class FavCard(QFrame):
         self._poster = QLabel()
         self._poster.setFixedSize(80, 120)
         self._poster.setAlignment(Qt.AlignCenter)
-        self._poster.setStyleSheet(f"background: {BG_CARD}; border-radius: 10px 0 0 10px;")
+        self._poster.setStyleSheet(f"background:{BG_CARD}; border-radius:10px 0 0 10px;")
         self._poster.setText("🎬")
         self._poster.setFont(QFont("Segoe UI Emoji", 22))
         lay.addWidget(self._poster)
@@ -474,17 +606,22 @@ class FavCard(QFrame):
             self.klik_card.emit(self.data)
 
     def _load_poster(self, d: dict):
-        if not self.client:
+        path = d.get("poster_path", "") or ""
+
+        if os.path.isfile(path):
+            px = QPixmap(path)
+            if not px.isNull():
+                self._set_poster(px)
             return
-        path = d.get("poster_path", "")
-        if not path:
+
+        if not self.client or not path:
             return
         url = self.client.poster_url(path, "w500")
         if not url:
             return
-        px = get_cached(url)
-        if px:
-            self._set_poster(px)
+        cached = get_cached(url)
+        if cached:
+            self._set_poster(cached)
             return
         from api.workers import ImageWorker
         w = ImageWorker(self.client, url)
@@ -501,24 +638,20 @@ class FavCard(QFrame):
             self._poster.setText("")
 
 
-# ── FavoritesPage ─────────────────────────────────────────────────
 class FavoritesPage(QWidget):
     def __init__(self, client=None, parent=None):
         super().__init__(parent)
-        self.db          = DatabaseManager()
-        self.client      = client
-        self._all_data:  list[dict] = []
-        self._view_mode  = "card"   # "card" | "table"
+        self.db         = DatabaseManager()
+        self.client     = client
+        self._all_data: list[dict] = []
+        self._view_mode = "card"
         self._build()
-
-    # ── Build UI ──────────────────────────────────────────────────
 
     def _build(self):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # Header
         hdr = QFrame()
         hdr.setFixedHeight(60)
         hdr.setStyleSheet(f"background:{BG_BASE}; border-bottom:1px solid {BORDER};")
@@ -530,7 +663,7 @@ class FavoritesPage(QWidget):
         self._lbl_count = QLabel("")
         self._lbl_count.setObjectName("muted")
 
-        btn_add = QPushButton("➕  Tambah Manual")
+        btn_add = QPushButton("➕  Tambah Film Favorite")
         btn_add.setObjectName("btn_ghost")
         btn_add.setFixedHeight(36)
         btn_add.clicked.connect(self._tambah_manual)
@@ -545,24 +678,21 @@ class FavoritesPage(QWidget):
         root.addWidget(self._build_statbar())
         root.addWidget(self._build_toolbar())
 
-        # ── Content stack: index 0 = card view, 1 = table view ──
         self._content_stack = QStackedWidget()
         self._content_stack.setStyleSheet(f"background:{BG_BASE};")
 
-        # --- Card view ---
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        self._list_w = QWidget()
+        self._list_w = QFrame()
         self._list_w.setStyleSheet(f"background:{BG_BASE};")
         self._list_lay = QVBoxLayout(self._list_w)
         self._list_lay.setContentsMargins(40, 20, 40, 40)
         self._list_lay.setSpacing(10)
         self._list_lay.addStretch()
         scroll.setWidget(self._list_w)
-        self._content_stack.addWidget(scroll)   # index 0
+        self._content_stack.addWidget(scroll)
 
-        # --- Table view ---
         self._table = QTableWidget()
         self._table.setColumnCount(len(TABLE_COLS))
         self._table.setHorizontalHeaderLabels(TABLE_COLS)
@@ -571,11 +701,10 @@ class FavoritesPage(QWidget):
         self._table.setAlternatingRowColors(True)
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setStretchLastSection(False)
-        self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self._table.setShowGrid(True)
         self._table.setSortingEnabled(True)
         self._table.doubleClicked.connect(self._table_double_click)
-        self._content_stack.addWidget(self._table)  # index 1
+        self._content_stack.addWidget(self._table)
 
         root.addWidget(self._content_stack)
 
@@ -598,13 +727,11 @@ class FavoritesPage(QWidget):
         btn_csv = QPushButton("📄 CSV")
         btn_csv.setObjectName("btn_ghost")
         btn_csv.setFixedHeight(30)
-        btn_csv.setToolTip("Export ke CSV")
         btn_csv.clicked.connect(self.do_export_csv)
 
         btn_pdf = QPushButton("📑 PDF")
         btn_pdf.setObjectName("btn_ghost")
         btn_pdf.setFixedHeight(30)
-        btn_pdf.setToolTip("Export ke PDF")
         btn_pdf.clicked.connect(self.do_export_pdf)
 
         lay.addWidget(btn_csv)
@@ -612,7 +739,6 @@ class FavoritesPage(QWidget):
         return f
 
     def _build_toolbar(self) -> QFrame:
-        """Toolbar: search + sort + toggle view."""
         f = QFrame()
         f.setFixedHeight(52)
         f.setStyleSheet(f"background:{BG_BASE}; border-bottom:1px solid {BORDER};")
@@ -637,7 +763,6 @@ class FavoritesPage(QWidget):
             self._combo_sort.addItem(label)
         self._combo_sort.currentIndexChanged.connect(self._apply_filter)
 
-        # Toggle view buttons
         self._btn_card = QPushButton("▦  Kartu")
         self._btn_card.setObjectName("btn_primary")
         self._btn_card.setFixedHeight(34)
@@ -659,8 +784,6 @@ class FavoritesPage(QWidget):
         lay.addWidget(self._btn_table)
         return f
 
-    # ── View toggle ───────────────────────────────────────────────
-
     def _set_view(self, mode: str):
         self._view_mode = mode
         if mode == "card":
@@ -671,12 +794,9 @@ class FavoritesPage(QWidget):
             self._content_stack.setCurrentIndex(1)
             self._btn_card.setObjectName("btn_ghost")
             self._btn_table.setObjectName("btn_primary")
-        # Re-polish buttons
         for btn in [self._btn_card, self._btn_table]:
             btn.style().unpolish(btn)
             btn.style().polish(btn)
-
-    # ── Data ──────────────────────────────────────────────────────
 
     def load_favorites(self):
         self._all_data = self.db.semua()
@@ -685,9 +805,7 @@ class FavoritesPage(QWidget):
         avg = self.db.avg_rating()
         self._lbl_count.setText(f"{n} film")
         self._lbl_total.setText(f"Total: {n} film")
-        self._lbl_avg.setText(
-            f"Rating rata-rata: {'–' if not avg else f'{avg:.1f} ⭐'}"
-        )
+        self._lbl_avg.setText(f"Rating rata-rata: {'–' if not avg else f'{avg:.1f} ⭐'}")
 
     def _apply_filter(self):
         q    = self._search.text().strip().lower()
@@ -737,14 +855,12 @@ class FavoritesPage(QWidget):
                 self._list_lay.insertWidget(self._list_lay.count() - 1, card)
 
     def _render_table(self, data: list[dict]):
-        """Render data ke QTableWidget."""
         self._table.setSortingEnabled(False)
         self._table.setRowCount(len(data))
 
         for row, d in enumerate(data):
             rating = float(d.get("rating", 0))
-            rc = (GREEN_ACT if rating >= 8 else
-                  GOLD if rating >= 6.5 else
+            rc = (GREEN_ACT if rating >= 8 else GOLD if rating >= 6.5 else
                   "#ff6b35" if rating >= 5 else GRAY_300)
 
             values = [
@@ -760,37 +876,28 @@ class FavoritesPage(QWidget):
             for col, val in enumerate(values):
                 item = QTableWidgetItem(val)
                 item.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-
-                # Warna rating
                 if col == 3:
                     item.setForeground(QColor(rc))
                     item.setFont(QFont("Consolas", 11, QFont.Bold))
-
-                # Simpan fav_id di kolom tersembunyi lewat UserRole
                 item.setData(Qt.UserRole, d.get("id"))
                 self._table.setItem(row, col, item)
 
-        # Lebar kolom
-        self._table.setColumnWidth(0, 40)   # #
-        self._table.setColumnWidth(2, 100)  # Genre
-        self._table.setColumnWidth(3, 70)   # Rating
-        self._table.setColumnWidth(4, 60)   # Tahun
-        self._table.setColumnWidth(6, 110)  # Tanggal
+        self._table.setColumnWidth(0, 40)
+        self._table.setColumnWidth(2, 100)
+        self._table.setColumnWidth(3, 70)
+        self._table.setColumnWidth(4, 60)
+        self._table.setColumnWidth(6, 110)
         self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self._table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)
-
         self._table.setSortingEnabled(True)
 
     def _table_double_click(self, index):
-        """Double-click baris tabel → buka detail."""
         fid = self._table.item(index.row(), 0).data(Qt.UserRole)
         if fid is None:
             return
         data = self.db.by_id(fid)
         if data:
             self._show_detail(data)
-
-    # ── CRUD ──────────────────────────────────────────────────────
 
     def _show_detail(self, data: dict):
         dlg = FavDetailDialog(data, self.db, self.client, self)
@@ -802,9 +909,13 @@ class FavoritesPage(QWidget):
         if dlg.exec() == QDialog.Accepted:
             d = dlg.get_data()
             self.db.tambah(
-                tmdb_id=0, judul=d["judul"], genre=d["genre"],
-                rating=d["rating"], catatan=d["catatan"],
+                tmdb_id=0,
+                judul=d["judul"],
+                genre=d["genre"],
+                rating=d["rating"],
+                catatan=d["catatan"],
                 release_year=d["release_year"],
+                poster_path=d["poster_path"],
             )
             self.load_favorites()
 
@@ -815,7 +926,15 @@ class FavoritesPage(QWidget):
         dlg = EditDialog(data, self)
         if dlg.exec() == QDialog.Accepted:
             d = dlg.get_data()
-            self.db.update(fid, data.get("judul", ""), d["genre"], d["rating"], d["catatan"])
+            self.db.update(
+                fid,
+                d["judul"],
+                d["genre"],
+                d["rating"],
+                d["catatan"],
+                release_year=d["release_year"],
+                poster_path=d["poster_path"],
+            )
             self.load_favorites()
 
     def _hapus(self, fid: int):
@@ -830,8 +949,6 @@ class FavoritesPage(QWidget):
         if box.exec() == QMessageBox.Yes:
             self.db.hapus(fid)
             self.load_favorites()
-
-    # ── Export ───────────────────────────────────────────────────
 
     def do_export_csv(self):
         if not self._all_data:
@@ -858,9 +975,9 @@ class FavoritesPage(QWidget):
         if not path:
             return
         from utils.export import export_pdf
-        import os
+        import os as _os
         if export_pdf(self._all_data, path, "Daftar Film Favorit — CineTrack"):
-            actual = path if os.path.exists(path) else path.replace(".pdf", ".html")
+            actual = path if _os.path.exists(path) else path.replace(".pdf", ".html")
             QMessageBox.information(self, "Export Berhasil", f"✅  Data berhasil diekspor ke:\n{actual}")
         else:
             QMessageBox.critical(self, "Export Gagal", "Gagal menyimpan file PDF.")

@@ -6,9 +6,9 @@ Aplikasi desktop katalog film berbasis **PySide6**, data film dari **TMDb API v3
 
 | Nama | NIM | Modul |
 |------|-----|-------|
-| Anggota 1 | F1D023XXXXX | Backend: `config.py`, `api/`, `database/` |
-| Anggota 2 | F1D023XXXXX | UI Core: `main.py`, `ui/theme.py`, `ui/main_window.py`, `ui/components/` |
-| Anggota 3 | F1D023XXXXX | Halaman: `ui/pages/` |
+| Apriesna Zulhan | F1D02310100 | Backend: `config.py`, `api/`, `database/` |
+| Cindy Natasya Aulia Putri | F1D02310109 | UI Core: `main.py`, `ui/theme.py`, `ui/main_window.py`, `ui/components/` |
+| Wahyu Indra Purnama | F1D02410099 | Halaman: `ui/pages/` |
 
 > **Ganti nama dan NIM** di tabel di atas dan di `ui/main_window.py` → variabel `ANGGOTA`.
 

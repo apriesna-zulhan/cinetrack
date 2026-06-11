@@ -55,5 +55,4 @@ def load_qss() -> str:
     except FileNotFoundError:
         print(f"[theme] Warning: {qss_path} tidak ditemukan, styling tidak diterapkan.")
         return ""
-
 QSS = load_qss()

@@ -119,14 +119,12 @@ class HeroBanner(QFrame):
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         r = self.rect()
 
-        # ── Backdrop ──
         if self._pixmap and not self._pixmap.isNull():
             scaled = self._pixmap.scaled(r.size(), Qt.KeepAspectRatioByExpanding,
                                           Qt.SmoothTransformation)
             x = (scaled.width() - r.width()) // 2
             p.drawPixmap(-x, 0, scaled)
         else:
-            # Fallback gradient
             gids  = self._film.get("genre_ids", [])
             color = GENRE_COLORS.get(gids[0] if gids else 0, "#E50914")
             grad  = QLinearGradient(0, 0, r.width(), r.height())
@@ -135,14 +133,12 @@ class HeroBanner(QFrame):
             grad.setColorAt(1, QColor(BG_BASE))
             p.fillRect(r, QBrush(grad))
 
-        # ── Fade kiri → kanan ──
         fade_lr = QLinearGradient(0, 0, r.width(), 0)
         fade_lr.setColorAt(0.0, QColor(20, 20, 20, 245))
         fade_lr.setColorAt(0.5, QColor(20, 20, 20, 140))
         fade_lr.setColorAt(1.0, QColor(20, 20, 20, 20))
         p.fillRect(r, QBrush(fade_lr))
 
-        # ── Fade bawah (fade-to-black) ──
         fade_tb = QLinearGradient(0, r.height() * 0.3, 0, r.height())
         fade_tb.setColorAt(0, QColor(20, 20, 20, 0))
         fade_tb.setColorAt(0.6, QColor(20, 20, 20, 80))

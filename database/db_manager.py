@@ -1,9 +1,3 @@
-"""
-database/db_manager.py — SQLite CRUD Manager
-Tabel:
-  1. favorit  — koleksi film favorit pengguna
-  2. riwayat  — riwayat pencarian / aktivitas (berelasi ke favorit via tmdb_id)
-"""
 import sqlite3
 from typing import Optional
 
@@ -49,8 +43,6 @@ class DatabaseManager:
         conn.row_factory = sqlite3.Row
         return conn
 
-    # ── Favorit ──────────────────────────────────────────────────
-
     def tambah(self, tmdb_id: int, judul: str, genre: str = "",
                 rating: float = 0.0, catatan: str = "",
                 poster_path: str = "", backdrop_path: str = "",
@@ -62,7 +54,6 @@ class DatabaseManager:
             cur = c.execute(sql, (tmdb_id, judul, genre, rating, catatan,
                                   poster_path, backdrop_path, overview, release_year))
             fid = cur.lastrowid
-            # Catat ke riwayat
             c.execute(
                 "INSERT INTO riwayat (tmdb_id, jenis, keterangan) VALUES (?,?,?)",
                 (tmdb_id, "tambah_favorit", f"Menambahkan \"{judul}\" ke favorit")
@@ -98,10 +89,17 @@ class DatabaseManager:
             return round(v, 1) if v else 0.0
 
     def update(self, fid: int, judul: str, genre: str,
-               rating: float, catatan: str) -> bool:
-        sql = "UPDATE favorit SET judul=?,genre=?,rating=?,catatan=? WHERE id=?"
+               rating: float, catatan: str,
+               release_year: str = "", poster_path: str = None) -> bool:
+        if poster_path is None:
+            sql = "UPDATE favorit SET judul=?,genre=?,rating=?,catatan=?,release_year=? WHERE id=?"
+            params = (judul, genre, rating, catatan, release_year, fid)
+        else:
+            sql = "UPDATE favorit SET judul=?,genre=?,rating=?,catatan=?,release_year=?,poster_path=? WHERE id=?"
+            params = (judul, genre, rating, catatan, release_year, poster_path, fid)
+
         with self._conn() as c:
-            ok = c.execute(sql, (judul, genre, rating, catatan, fid)).rowcount > 0
+            ok = c.execute(sql, params).rowcount > 0
             if ok:
                 row = c.execute("SELECT tmdb_id FROM favorit WHERE id=?", (fid,)).fetchone()
                 tmdb_id = row[0] if row else None
@@ -114,7 +112,7 @@ class DatabaseManager:
     def hapus(self, fid: int) -> bool:
         with self._conn() as c:
             row = c.execute("SELECT judul, tmdb_id FROM favorit WHERE id=?", (fid,)).fetchone()
-            ok = c.execute("DELETE FROM favorit WHERE id=?", (fid,)).rowcount > 0
+            ok  = c.execute("DELETE FROM favorit WHERE id=?", (fid,)).rowcount > 0
             if ok and row:
                 c.execute(
                     "INSERT INTO riwayat (tmdb_id, jenis, keterangan) VALUES (?,?,?)",
@@ -125,8 +123,6 @@ class DatabaseManager:
     def hapus_by_tmdb(self, tmdb_id: int) -> bool:
         with self._conn() as c:
             return c.execute("DELETE FROM favorit WHERE tmdb_id=?", (tmdb_id,)).rowcount > 0
-
-    # ── Riwayat ───────────────────────────────────────────────────
 
     def tambah_riwayat(self, jenis: str, keterangan: str, tmdb_id: int = None):
         with self._conn() as c:

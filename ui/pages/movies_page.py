@@ -33,6 +33,8 @@ GENRE_LIST_EDIT = [
     "Animasi","Romantis","Thriller","Petualangan","Fantasi","Lainnya"
 ]
 
+
+# Dialog catatan 
 class CatatanDialog(QDialog):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
@@ -91,6 +93,8 @@ class CatatanDialog(QDialog):
             "catatan": self.txt.toPlainText().strip(),
         }
 
+
+# Dialog detail film 
 class DetailDialog(QDialog):
     favorite_changed = Signal(str)
 
@@ -112,6 +116,7 @@ class DetailDialog(QDialog):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
+        # Poster kiri
         self._poster_lbl = QLabel("⏳")
         self._poster_lbl.setFixedSize(240, 360)
         self._poster_lbl.setAlignment(Qt.AlignCenter)
@@ -119,6 +124,7 @@ class DetailDialog(QDialog):
         self._poster_lbl.setStyleSheet(f"background: {BG_SURFACE};")
         root.addWidget(self._poster_lbl)
 
+        # Info kanan
         right = QWidget()
         right.setStyleSheet(f"background: {BG_SURFACE};")
         rl = QVBoxLayout(right)
@@ -293,10 +299,13 @@ class DetailDialog(QDialog):
             )
 
     def closeEvent(self, e):
+        # Pastikan image worker berhenti saat dialog ditutup
         if self._img_worker and self._img_worker.isRunning():
             self._img_worker.stop()
         super().closeEvent(e)
 
+
+# MoviesPage 
 class MoviesPage(QWidget):
     favorite_changed = Signal(str)
 
@@ -312,6 +321,8 @@ class MoviesPage(QWidget):
         self._genre_id      = None
         self._api_req       = 0
         self._build()
+
+    # Build UI 
 
     def _build(self):
         root = QVBoxLayout(self)
@@ -334,11 +345,13 @@ class MoviesPage(QWidget):
         self._lay.setContentsMargins(0, 0, 0, 48)
         self._lay.setSpacing(0)
 
+        # Hero banner
         self._hero = HeroBanner()
         self._hero.klik_favorit.connect(self._toggle_fav)
         self._hero.klik_detail.connect(self._show_detail)
         self._lay.addWidget(self._hero)
 
+        # Konten di bawah hero
         konten = QWidget()
         konten.setStyleSheet(f"background: {BG_BASE};")
         kl = QVBoxLayout(konten)
@@ -433,7 +446,7 @@ class MoviesPage(QWidget):
             row.addWidget(btn)
         row.addStretch()
         return row
-    
+
     def _initial_load(self):
         self._films.clear()
         self._pages_loaded = 0
@@ -662,7 +675,7 @@ class MoviesPage(QWidget):
     @property
     def api_req(self):
         return self._api_req
-    
+
     def closeEvent(self, e):
         self._cleanup()
         super().closeEvent(e)

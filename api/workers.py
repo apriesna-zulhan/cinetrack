@@ -17,7 +17,7 @@ class _BaseWorker(QThread):
     def stop(self):
         self._stopped = True
         self.quit()
-        self.wait(2000)   
+        self.wait(2000)   # tunggu max 2 detik, lalu paksa
 
 
 class MovieFetchWorker(_BaseWorker):

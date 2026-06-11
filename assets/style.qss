@@ -3,6 +3,7 @@
    Diload sekali di main.py, berlaku global ke seluruh aplikasi.
    ===================================================================== */
 
+/* ── Reset Global ─────────────────────────────────────────────────── */
 * {
     font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -15,6 +16,7 @@
 QMainWindow, QDialog { background-color: #141414; }
 QWidget#root_widget   { background-color: #141414; }
 
+/* ── Sidebar ──────────────────────────────────────────────────────── */
 QFrame#sidebar {
     background-color: #0D0D0D;
     border-right: 1px solid #2A2A2A;
@@ -54,11 +56,13 @@ QPushButton#nav_btn[active=true] {
     font-weight: 700;
 }
 
+/* ── Topbar ───────────────────────────────────────────────────────── */
 QFrame#topbar {
     background-color: #141414;
     border-bottom: 1px solid #2A2A2A;
 }
 
+/* ── Menu Bar ─────────────────────────────────────────────────────── */
 QMenuBar {
     background-color: #0D0D0D;
     color: #E5E5E5;
@@ -76,6 +80,7 @@ QMenu {
 QMenu::item:selected { background: #E50914; color: white; }
 QMenu::separator { height: 1px; background: #2A2A2A; margin: 4px 0; }
 
+/* ── Status Bar ───────────────────────────────────────────────────── */
 QStatusBar {
     background: #0D0D0D;
     color: #4A4A4A;
@@ -83,6 +88,7 @@ QStatusBar {
     border-top: 1px solid #2A2A2A;
 }
 
+/* ── Search Input ─────────────────────────────────────────────────── */
 QLineEdit#search_input {
     background: #1F1F1F;
     color: #FFFFFF;
@@ -97,6 +103,7 @@ QLineEdit#search_input:focus {
     background: #2A2A2A;
 }
 
+/* ── Buttons ──────────────────────────────────────────────────────── */
 QPushButton#btn_primary {
     background-color: #E50914;
     color: #FFFFFF;
@@ -180,6 +187,7 @@ QPushButton#load_more_btn {
 }
 QPushButton#load_more_btn:hover { border-color: #FFFFFF; color: #FFFFFF; }
 
+/* ── Scroll Bar ───────────────────────────────────────────────────── */
 QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; border: none; }
 QScrollBar:vertical {
     background: transparent;
@@ -195,6 +203,7 @@ QScrollBar::handle:vertical:hover { background: #808080; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar:horizontal { height: 0; }
 
+/* ── Form Inputs ──────────────────────────────────────────────────── */
 QLineEdit, QTextEdit, QDoubleSpinBox, QComboBox {
     background: #242424;
     color: #FFFFFF;
@@ -221,17 +230,20 @@ QComboBox QAbstractItemView {
     padding: 4px;
 }
 
+/* ── Labels ───────────────────────────────────────────────────────── */
 QLabel#page_title   { color: #FFFFFF; font-size: 26px; font-weight: 800; }
 QLabel#section_title{ color: #FFFFFF; font-size: 17px; font-weight: 700; }
 QLabel#muted        { color: #808080; font-size: 11px; }
 QLabel#form_label   { color: #B3B3B3; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
 
+/* ── Cards & Frames ───────────────────────────────────────────────── */
 QFrame#stat_card    { background: #1F1F1F; border: 1px solid #2A2A2A; border-radius: 10px; }
 QFrame#chart_frame  { background: #1F1F1F; border: 1px solid #2A2A2A; border-radius: 12px; }
 QFrame#fav_card     { background: #1F1F1F; border: 1px solid #2A2A2A; border-radius: 10px; }
 QFrame#fav_card:hover { border-color: #4A4A4A; background: #2A2A2A; }
 QFrame#detail_panel { background: #1F1F1F; border: 1px solid #2A2A2A; border-radius: 12px; }
 
+/* ── Dialog ───────────────────────────────────────────────────────── */
 QDialog { background: #1F1F1F; }
 QDialogButtonBox QPushButton {
     background: #2A2A2A;
@@ -250,6 +262,7 @@ QDialogButtonBox QPushButton:default {
 }
 QDialogButtonBox QPushButton:hover { background: #E50914; color: #FFFFFF; border: none; }
 
+/* ── Message Box ──────────────────────────────────────────────────── */
 QMessageBox             { background: #1F1F1F; }
 QMessageBox QLabel      { color: #FFFFFF; font-size: 13px; }
 QMessageBox QPushButton {
@@ -267,6 +280,7 @@ QMessageBox QPushButton:default {
     font-weight: 700;
 }
 
+/* ── Table Widget ─────────────────────────────────────────────────── */
 QTableWidget {
     background-color: #141414;
     alternate-background-color: #1F1F1F;
@@ -288,6 +302,7 @@ QHeaderView::section {
     border-right: 1px solid #2A2A2A;
 }
 
+/* ── Misc ─────────────────────────────────────────────────────────── */
 QProgressBar {
     background: #2A2A2A;
     border: none;
