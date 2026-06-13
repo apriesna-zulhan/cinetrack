@@ -6,11 +6,9 @@ Aplikasi desktop katalog film berbasis **PySide6**, data film dari **TMDb API v3
 
 | Nama | NIM | Modul |
 |------|-----|-------|
-| Apriesna Zulhan | F1D02310100 | Backend: `config.py`, `api/`, `database/` |
-| Cindy Natasya Aulia Putri | F1D02310109 | UI Core: `main.py`, `ui/theme.py`, `ui/main_window.py`, `ui/components/` |
-| Wahyu Indra Purnama | F1D02410099 | Halaman: `ui/pages/` |
-
-> **Ganti nama dan NIM** di tabel di atas dan di `ui/main_window.py` → variabel `ANGGOTA`.
+| Apriesna Zulhan | F1D02310100 | `config.py`, `api/`, `database/`, `models/`, `utils/export.py`, `ui/pages/dashboard_page.py`, `ui/components/stat_card.py` |
+| Cindy Natasya Aulia Putri | F1D02310109 | `main.py`, `ui/theme.py`, `assets/style.qss`, `ui/main_window.py` |
+| Wahyu Indra Purnama | F1D02410099 | `ui/pages/movies_page.py`, `ui/pages/favorites_page.py`, `ui/components/movie_card.py`, `ui/components/hero_banner.py`, `ui/components/image_cache.py`, `README.md` |
 
 ## Fitur
 
@@ -66,8 +64,3 @@ CineTrack/
         ├── image_cache.py
         └── stat_card.py
 ```
-
-## Catatan
-
-- File `cinetrack.db` dan folder `__pycache__/` tidak perlu di-push ke GitHub (sudah di `.gitignore`)
-- API Key TMDb ada di `config.py` — ganti jika expired
