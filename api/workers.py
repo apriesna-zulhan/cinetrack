@@ -1,14 +1,8 @@
-"""
-api/workers.py — Background QThread workers (thread-safe, no leak)
-Semua worker punya stop() dan cleanup yang proper agar tidak crash
-saat widget dihapus sebelum thread selesai.
-"""
 import requests
 from PySide6.QtCore import QThread, Signal
 
 
 class _BaseWorker(QThread):
-    """Base worker dengan stop flag agar bisa di-cancel dengan aman."""
 
     def __init__(self):
         super().__init__()
@@ -17,11 +11,10 @@ class _BaseWorker(QThread):
     def stop(self):
         self._stopped = True
         self.quit()
-        self.wait(2000)   # tunggu max 2 detik, lalu paksa
+        self.wait(2000)   
 
 
 class MovieFetchWorker(_BaseWorker):
-    """Fetch film populer dari beberapa halaman sekaligus."""
     finished = Signal(list)
     progress = Signal(int, int)
     error    = Signal(str)
@@ -63,7 +56,6 @@ class MovieFetchWorker(_BaseWorker):
 
 
 class ImageWorker(_BaseWorker):
-    """Download satu gambar sebagai bytes."""
     finished = Signal(str, bytes)
     failed   = Signal(str)
 
@@ -85,7 +77,6 @@ class ImageWorker(_BaseWorker):
 
 
 class DetailWorker(_BaseWorker):
-    """Fetch detail satu film."""
     finished = Signal(dict)
     error    = Signal(str)
 
@@ -107,7 +98,6 @@ class DetailWorker(_BaseWorker):
 
 
 class SearchWorker(_BaseWorker):
-    """Cari film berdasarkan query."""
     finished = Signal(list)
     error    = Signal(str)
 

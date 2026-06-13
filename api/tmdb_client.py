@@ -1,7 +1,3 @@
-"""
-api/tmdb_client.py — TMDb REST API v3 Client
-Menggunakan bahasa en-US agar sinopsis selalu tersedia untuk semua film.
-"""
 import requests
 from typing import Optional
 from config import TMDB_BASE, TMDB_IMG_W500, TMDB_IMG_W1280, TMDB_IMG_ORIG

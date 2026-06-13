@@ -1,7 +1,3 @@
-"""
-models/film.py — Model data Film dari TMDb API.
-Digunakan sebagai representasi data film di seluruh aplikasi.
-"""
 from dataclasses import dataclass, field
 
 
@@ -19,7 +15,6 @@ class Film:
 
     @classmethod
     def from_api(cls, data: dict) -> "Film":
-        """Buat instance Film dari response dict TMDb API."""
         release = data.get("release_date", "") or ""
         year    = release[:4] if len(release) >= 4 else ""
         return cls(

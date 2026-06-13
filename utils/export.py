@@ -1,13 +1,9 @@
-"""
-utils/export.py — Export data favorit ke CSV dan PDF
-"""
 import csv
 from datetime import datetime
 from typing import List
 
 
 def export_csv(data: List[dict], filepath: str) -> bool:
-    """Export list dict ke file CSV. Return True jika berhasil."""
     try:
         fieldnames = [
             "id", "judul", "genre", "rating",
@@ -24,9 +20,6 @@ def export_csv(data: List[dict], filepath: str) -> bool:
 
 
 def export_pdf(data: List[dict], filepath: str, title: str = "Daftar Film Favorit") -> bool:
-    """
-    Export ke PDF via ReportLab. Jika tidak ada, fallback ke HTML.
-    """
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
@@ -103,7 +96,6 @@ def export_pdf(data: List[dict], filepath: str, title: str = "Daftar Film Favori
 
 
 def _export_html_fallback(data: List[dict], filepath: str, title: str) -> bool:
-    """Fallback export ke HTML jika ReportLab tidak terinstal."""
     try:
         rows_html = ""
         for i, d in enumerate(data, 1):

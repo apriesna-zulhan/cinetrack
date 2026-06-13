@@ -4,7 +4,7 @@ from PySide6.QtGui import (QPixmap, QPainter, QColor, QLinearGradient, QBrush,
                             QPen, QFont, QPainterPath)
 
 from ui.theme import (BG_CARD, WHITE, GRAY_200,
-                       GRAY_400, RED, GOLD, GREEN_ACT, GENRE_COLORS, GENRE_NAMES)
+                       GENRE_COLORS, GENRE_NAMES)
 
 CARD_W = 175
 CARD_H = 262
@@ -122,14 +122,11 @@ class MovieCard(QFrame):
         p.setBrush(Qt.NoBrush)
         p.drawRoundedRect(1, 1, r.width()-2, r.height()-2, 7, 7)
 
-        # ── Badge bintang (tanpa kotak, langsung teks) ──
         if self.tersimpan:
             font = QFont("Segoe UI Emoji", 15)
             p.setFont(font)
             rect_badge = QRect(r.width()-32, 4, 28, 28)
-            # shadow
             p.setPen(QColor(0, 0, 0, 120))
             p.drawText(rect_badge.adjusted(1, 1, 1, 1), Qt.AlignCenter, "⭐")
-            # bintang utama
             p.setPen(QColor("#F5C518"))
             p.drawText(rect_badge, Qt.AlignCenter, "⭐")

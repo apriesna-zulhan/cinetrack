@@ -1,6 +1,3 @@
-"""
-ui/main_window.py — MainWindow dengan Menu Bar, Status Bar NIM, dan navigasi sidebar.
-"""
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QPushButton, QLabel, QFrame, QStackedWidget, QStatusBar,
@@ -52,7 +49,6 @@ class Sidebar(QFrame):
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
 
-        # Logo
         logo_f = QFrame()
         logo_f.setFixedHeight(72)
         logo_f.setStyleSheet(
@@ -101,7 +97,6 @@ class Sidebar(QFrame):
         lay.addWidget(self.btn_favorites)
         lay.addStretch()
 
-        # Info bawah
         info = QFrame()
         info.setStyleSheet(
             f"background: #0D0D0D; border-top: 1px solid {BORDER};"
@@ -214,7 +209,6 @@ class MainWindow(QMainWindow):
         menu_export.addAction(act_csv)
         menu_export.addAction(act_pdf)
 
-        # ── Help ──
         menu_help = mb.addMenu("&Help")
 
         act_about = QAction("ℹ️  Tentang CineTrack", self)
@@ -287,9 +281,9 @@ class MainWindow(QMainWindow):
         self._pg_movies.favorite_changed.connect(self._on_fav_changed)
         self._pg_fav    = FavoritesPage(self._client)
 
-        self._stack.addWidget(self._pg_dash)    # 0
-        self._stack.addWidget(self._pg_movies)  # 1
-        self._stack.addWidget(self._pg_fav)     # 2
+        self._stack.addWidget(self._pg_dash)    
+        self._stack.addWidget(self._pg_movies)  
+        self._stack.addWidget(self._pg_fav)     
 
         rl.addWidget(self._stack)
         root.addWidget(right, stretch=1)

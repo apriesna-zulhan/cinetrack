@@ -49,14 +49,12 @@ class DatabaseManager:
                 overview: str = "", release_year: str = "") -> int:
         with self._conn() as c:
             if tmdb_id is not None:
-                # Film dari TMDB: pakai REPLACE agar tidak duplikat
                 sql = """INSERT OR REPLACE INTO favorit
                          (tmdb_id,judul,genre,rating,catatan,poster_path,backdrop_path,overview,release_year)
                          VALUES (?,?,?,?,?,?,?,?,?)"""
                 cur = c.execute(sql, (tmdb_id, judul, genre, rating, catatan,
                                       poster_path, backdrop_path, overview, release_year))
             else:
-                # Film manual: tmdb_id = NULL, selalu INSERT baru agar tidak saling hapus
                 sql = """INSERT INTO favorit
                          (tmdb_id,judul,genre,rating,catatan,poster_path,backdrop_path,overview,release_year)
                          VALUES (NULL,?,?,?,?,?,?,?,?)"""

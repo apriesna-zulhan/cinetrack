@@ -1,17 +1,12 @@
-"""
-ui/pages/movies_page.py
-Halaman FILM POPULER — Netflix-style grid dengan poster asli.
-Thread-safe: semua worker di-stop sebelum widget dihapus.
-"""
 import random
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QGridLayout, QSizePolicy, QMessageBox,
+    QScrollArea, QFrame, QGridLayout, QMessageBox,
     QProgressBar, QDialog, QFormLayout, QTextEdit, QDoubleSpinBox,
     QComboBox, QDialogButtonBox, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal, QTimer
-from PySide6.QtGui import QFont, QPixmap, QColor
+from PySide6.QtGui import QFont, QPixmap
 
 from ui.components.movie_card import MovieCard
 from ui.components.hero_banner import HeroBanner
@@ -331,7 +326,7 @@ class MoviesPage(QWidget):
         self._films: list[dict] = []
         self._cards: list[MovieCard] = []
         self._img_workers: list[ImageWorker] = []
-        self._backdrop_worker: ImageWorker | None = None  # worker khusus backdrop
+        self._backdrop_worker: ImageWorker | None = None  
         self._fetch_worker  = None
         self._pages_loaded  = 0
         self._genre_id      = None
@@ -593,7 +588,6 @@ class MoviesPage(QWidget):
         self._img_workers.append(w)
 
     def _load_backdrop(self, film: dict):
-        # Stop backdrop worker sebelumnya jika masih berjalan
         if self._backdrop_worker and self._backdrop_worker.isRunning():
             self._backdrop_worker.stop()
             self._backdrop_worker = None
@@ -608,7 +602,6 @@ class MoviesPage(QWidget):
         if px:
             self._hero.set_backdrop(px)
             return
-        # Gunakan worker terpisah agar tidak ikut di-stop oleh _stop_img_workers
         self._backdrop_worker = ImageWorker(self.client, url)
         self._backdrop_worker.finished.connect(
             lambda u, data: self._hero.set_backdrop(store(u, data))

@@ -1,6 +1,3 @@
-"""
-models/riwayat.py — Model data Riwayat (dari SQLite tabel riwayat).
-"""
 from dataclasses import dataclass
 from typing import Optional
 

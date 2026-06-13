@@ -1,24 +1,13 @@
-"""
-ui/components/hero_banner.py
-Hero banner dengan backdrop asli dari TMDb + fade-to-black gradient.
-"""
 from PySide6.QtWidgets import QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (QPixmap, QPainter, QColor, QLinearGradient,
                             QBrush, QFont)
 
 from ui.theme import (BG_BASE, WHITE, GRAY_200,
-                       RED, GOLD, GREEN_ACT, GENRE_NAMES, GENRE_COLORS)
+                      GENRE_NAMES, GENRE_COLORS)
 
 
 class HeroBanner(QWidget):
-    """
-    Banner hero di atas halaman Film Populer:
-    - Backdrop full-width dari TMDb (digambar di paintEvent)
-    - Fade-to-black gradient bawah dan kiri
-    - Info: judul, rating, genre, deskripsi
-    - Tombol: Tambah Favorit + Info Film
-    """
     klik_favorit = Signal(dict)
     klik_detail  = Signal(dict)
 
@@ -29,19 +18,13 @@ class HeroBanner(QWidget):
 
         self.setFixedHeight(420)
 
-        # Beritahu Qt bahwa kita menggambar seluruh area sendiri
-        # sehingga Qt tidak menghapus area dengan warna background dulu
         self.setAttribute(Qt.WA_OpaquePaintEvent, True)
 
         self._build()
 
-    # ------------------------------------------------------------------
     def _build(self):
-        # Overlay widget untuk konten teks & tombol
         self._content = QWidget(self)
 
-        # KRITIS: buat overlay benar-benar transparan
-        # agar tidak menutupi backdrop yang digambar di paintEvent
         self._content.setAttribute(Qt.WA_NoSystemBackground, True)
         self._content.setAttribute(Qt.WA_TranslucentBackground, True)
         self._content.setStyleSheet("background: transparent;")
@@ -105,7 +88,6 @@ class HeroBanner(QWidget):
         cl.addWidget(self._lbl_desc)
         cl.addLayout(row)
 
-    # ------------------------------------------------------------------
     def set_film(self, data: dict):
         self._film = data
         judul  = data.get("title", "–")
@@ -127,7 +109,6 @@ class HeroBanner(QWidget):
             self._pixmap = pixmap
             self.update()
 
-    # ------------------------------------------------------------------
     def resizeEvent(self, e):
         self._content.setGeometry(0, 0, self.width(), self.height())
         super().resizeEvent(e)
@@ -142,17 +123,14 @@ class HeroBanner(QWidget):
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         r = self.rect()
 
-        # ── 1. Backdrop atau fallback gradient ──────────────────────────
         if self._pixmap and not self._pixmap.isNull():
             scaled = self._pixmap.scaled(
                 r.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
             )
-            # Tengahkan horizontal & vertikal
             x = (scaled.width()  - r.width())  // 2
             y = (scaled.height() - r.height()) // 2
             p.drawPixmap(-x, -y, scaled)
         else:
-            # Warna genre saat gambar belum datang
             gids  = self._film.get("genre_ids", [])
             color = GENRE_COLORS.get(gids[0] if gids else 0, "#E50914")
             grad  = QLinearGradient(0, 0, r.width(), r.height())
@@ -162,7 +140,6 @@ class HeroBanner(QWidget):
             grad.setColorAt(1, QColor(BG_BASE))
             p.fillRect(r, QBrush(grad))
 
-        # ── 2. Gradient kiri → kanan (transparan di kanan) ─────────────
         fade_lr = QLinearGradient(0, 0, r.width(), 0)
         fade_lr.setColorAt(0.00, QColor(20, 20, 20, 210))
         fade_lr.setColorAt(0.40, QColor(20, 20, 20, 90))
@@ -170,7 +147,6 @@ class HeroBanner(QWidget):
         fade_lr.setColorAt(1.00, QColor(20, 20, 20, 0))
         p.fillRect(r, QBrush(fade_lr))
 
-        # ── 3. Gradient atas → bawah (fade ke hitam di bawah) ──────────
         fade_tb = QLinearGradient(0, r.height() * 0.15, 0, r.height())
         fade_tb.setColorAt(0.0, QColor(20, 20, 20, 0))
         fade_tb.setColorAt(0.5, QColor(20, 20, 20, 50))

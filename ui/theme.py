@@ -1,9 +1,3 @@
-"""
-ui/theme.py — Konstanta warna & helper load QSS.
-QSS styling dipindah ke assets/style.qss.
-Konstanta warna tetap di sini karena dipakai langsung di kode Python
-(setStyleSheet inline, QColor, dll.)
-"""
 import os
 
 BG_BASE    = "#141414"
@@ -43,10 +37,6 @@ GENRE_NAMES = {
 }
 
 def load_qss() -> str:
-    """
-    Membaca assets/style.qss dan mengembalikan isinya sebagai string.
-    Dipanggil sekali di main.py → app.setStyleSheet(load_qss()).
-    """
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     qss_path = os.path.join(base, "assets", "style.qss")
     try:

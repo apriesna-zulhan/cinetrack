@@ -1,6 +1,3 @@
-"""
-models/favorit.py — Model data Favorit (dari SQLite tabel favorit).
-"""
 from dataclasses import dataclass
 
 
@@ -20,7 +17,6 @@ class Favorit:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Favorit":
-        """Buat instance Favorit dari dict hasil query SQLite."""
         return cls(
             id             = d.get("id", 0),
             tmdb_id        = d.get("tmdb_id", 0),

@@ -1,6 +1,3 @@
-"""
-ui/components/stat_card.py — Widget kartu statistik dashboard.
-"""
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QSizePolicy
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QColor, QPainter, QPen, QBrush, QLinearGradient

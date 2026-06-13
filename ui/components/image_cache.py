@@ -1,7 +1,3 @@
-"""
-ui/components/image_cache.py
-Cache gambar di memori agar poster tidak di-download ulang.
-"""
 from PySide6.QtGui import QPixmap
 
 _cache: dict[str, QPixmap] = {}

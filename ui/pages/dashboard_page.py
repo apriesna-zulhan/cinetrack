@@ -1,9 +1,5 @@
-"""
-ui/pages/dashboard_page.py
-Halaman DASHBOARD: statistik + chart + favorit terbaru yang bisa diklik.
-"""
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QFrame, QScrollArea, QSizePolicy
 )
 from PySide6.QtCore import Qt, Signal
@@ -16,16 +12,12 @@ from PySide6.QtGui import QPainter, QPen
 
 from ui.components.stat_card import StatCard
 from ui.theme import (BG_BASE, BG_SURFACE, BG_CARD, WHITE, GRAY_100,
-                       GRAY_200, GRAY_300, GRAY_400, RED, GOLD,
+                       GRAY_300, GRAY_400, RED, GOLD,
                        GREEN_ACT, BLUE_ACT, BORDER)
 from database.db_manager import DatabaseManager
 
 
 class RecentFavRow(QFrame):
-    """
-    Satu baris film favorit di dashboard — bisa diklik untuk
-    membuka dialog detail dengan sinopsis.
-    """
     klik_detail = Signal(dict)
 
     def __init__(self, data: dict, parent=None):
@@ -96,13 +88,6 @@ class RecentFavRow(QFrame):
 
 
 class DashboardPage(QWidget):
-    """
-    Halaman Dashboard:
-    1. Grid 4 StatCard
-    2. Bar chart QtCharts Top 10 popularitas
-    3. Favorit terbaru — bisa diklik buka detail + sinopsis
-    """
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db            = DatabaseManager()
@@ -112,7 +97,6 @@ class DashboardPage(QWidget):
         self._build()
 
     def set_client(self, client):
-        """Dipanggil dari MainWindow setelah client dibuat."""
         self._client = client
 
     def _build(self):
@@ -324,7 +308,6 @@ class DashboardPage(QWidget):
             self._fav_container.addWidget(row)
 
     def _on_klik_fav(self, data: dict):
-        """Buka dialog detail favorit dengan sinopsis."""
         from ui.pages.favorites_page import FavDetailDialog
         dlg = FavDetailDialog(data, self.db, self._client, self)
         dlg.data_changed.connect(self._update_recent_fav)
