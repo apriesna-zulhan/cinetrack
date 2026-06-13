@@ -1,4 +1,4 @@
-# 🎬 CineTrack v2 — Katalog Film Desktop
+# 🎬 CineTrack — Katalog Film Desktop
 
 Aplikasi desktop katalog film berbasis **PySide6**, data film dari **TMDb API v3**, penyimpanan lokal **SQLite**.
 
@@ -6,9 +6,12 @@ Aplikasi desktop katalog film berbasis **PySide6**, data film dari **TMDb API v3
 
 | Nama | NIM | Modul |
 |------|-----|-------|
-| Apriesna Zulhan | F1D02310100 | `config.py`, `api/`, `database/`, `models/`, `utils/export.py`, `ui/pages/dashboard_page.py`, `ui/components/stat_card.py` |
-| Cindy Natasya Aulia Putri | F1D02310109 | `main.py`, `ui/theme.py`, `assets/style.qss`, `ui/main_window.py` |
-| Wahyu Indra Purnama | F1D02410099 | `ui/pages/movies_page.py`, `ui/pages/favorites_page.py`, `ui/components/movie_card.py`, `ui/components/hero_banner.py`, `ui/components/image_cache.py`, `README.md` |
+| Apriesna Zulhan | F1D02310100 | `config.py`, `api/`, `database/`, `models/`, `utils/export.py`, `ui/main_window.py`, `ui/components/stat_card.py`, `ui/pages/dashboard_page.py` |
+| Cindy Natasya Aulia Putri | F1D02310109 | `main.py`, `ui/theme.py`, `assets/style.qss`, `ui/pages/favorites_page.py` |
+| Wahyu Indra Purnama | F1D02410099 | 
+`ui/components/movie_card.py`, `ui/components/hero_banner.py`, `ui/components/image_cache.py`
+`ui/pages/movies_page.py`
+`README.md` |
 
 ## Fitur
 
