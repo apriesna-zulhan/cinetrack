@@ -917,7 +917,7 @@ class FavoritesPage(QWidget):
         if dlg.exec() == QDialog.Accepted:
             d = dlg.get_data()
             self.db.tambah(
-                tmdb_id=0,
+                tmdb_id=None,
                 judul=d["judul"],
                 genre=d["genre"],
                 rating=d["rating"],

@@ -2,19 +2,19 @@
 ui/components/hero_banner.py
 Hero banner dengan backdrop asli dari TMDb + fade-to-black gradient.
 """
-from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget
+from PySide6.QtWidgets import QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (QPixmap, QPainter, QColor, QLinearGradient,
-                            QBrush, QFont, QPainterPath)
+                            QBrush, QFont)
 
 from ui.theme import (BG_BASE, WHITE, GRAY_200,
                        RED, GOLD, GREEN_ACT, GENRE_NAMES, GENRE_COLORS)
 
 
-class HeroBanner(QFrame):
+class HeroBanner(QWidget):
     """
-    Banner hero di atas dashboard:
-    - Backdrop full-width dari TMDb
+    Banner hero di atas halaman Film Populer:
+    - Backdrop full-width dari TMDb (digambar di paintEvent)
     - Fade-to-black gradient bawah dan kiri
     - Info: judul, rating, genre, deskripsi
     - Tombol: Tambah Favorit + Info Film
@@ -24,15 +24,28 @@ class HeroBanner(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._film    = {}
-        self._pixmap  = None
+        self._film   = {}
+        self._pixmap = None
+
         self.setFixedHeight(420)
-        self.setAttribute(Qt.WA_StyledBackground, False)
+
+        # Beritahu Qt bahwa kita menggambar seluruh area sendiri
+        # sehingga Qt tidak menghapus area dengan warna background dulu
+        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+
         self._build()
 
+    # ------------------------------------------------------------------
     def _build(self):
+        # Overlay widget untuk konten teks & tombol
         self._content = QWidget(self)
-        self._content.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+
+        # KRITIS: buat overlay benar-benar transparan
+        # agar tidak menutupi backdrop yang digambar di paintEvent
+        self._content.setAttribute(Qt.WA_NoSystemBackground, True)
+        self._content.setAttribute(Qt.WA_TranslucentBackground, True)
+        self._content.setStyleSheet("background: transparent;")
+
         cl = QVBoxLayout(self._content)
         cl.setContentsMargins(56, 0, 56, 48)
         cl.setSpacing(0)
@@ -52,10 +65,14 @@ class HeroBanner(QFrame):
         self._lbl_title.setMaximumWidth(620)
 
         self._lbl_meta = QLabel("")
-        self._lbl_meta.setStyleSheet(f"color: {GRAY_200}; font-size: 13px; background: transparent; padding: 6px 0;")
+        self._lbl_meta.setStyleSheet(
+            f"color: {GRAY_200}; font-size: 13px; background: transparent; padding: 6px 0;"
+        )
 
         self._lbl_desc = QLabel("")
-        self._lbl_desc.setStyleSheet(f"color: {GRAY_200}; font-size: 13px; line-height: 1.6; background: transparent;")
+        self._lbl_desc.setStyleSheet(
+            f"color: {GRAY_200}; font-size: 13px; line-height: 1.6; background: transparent;"
+        )
         self._lbl_desc.setWordWrap(True)
         self._lbl_desc.setMaximumWidth(580)
 
@@ -88,6 +105,7 @@ class HeroBanner(QFrame):
         cl.addWidget(self._lbl_desc)
         cl.addLayout(row)
 
+    # ------------------------------------------------------------------
     def set_film(self, data: dict):
         self._film = data
         judul  = data.get("title", "–")
@@ -95,9 +113,7 @@ class HeroBanner(QFrame):
         rating = data.get("vote_average", 0)
         gids   = data.get("genre_ids", [])
         genres = ", ".join(GENRE_NAMES.get(g, "") for g in gids[:3] if g in GENRE_NAMES)
-        desc = data.get("overview", "").strip()
-        if not desc:
-            desc = "Sinopsis tidak tersedia untuk film ini."
+        desc   = data.get("overview", "").strip() or "Sinopsis tidak tersedia untuk film ini."
         if len(desc) > 200:
             desc = desc[:200] + "…"
 
@@ -107,11 +123,18 @@ class HeroBanner(QFrame):
         self.update()
 
     def set_backdrop(self, pixmap: QPixmap):
-        self._pixmap = pixmap
-        self.update()
+        if pixmap and not pixmap.isNull():
+            self._pixmap = pixmap
+            self.update()
 
+    # ------------------------------------------------------------------
     def resizeEvent(self, e):
         self._content.setGeometry(0, 0, self.width(), self.height())
+        super().resizeEvent(e)
+
+    def showEvent(self, e):
+        self._content.setGeometry(0, 0, self.width(), self.height())
+        super().showEvent(e)
 
     def paintEvent(self, e):
         p = QPainter(self)
@@ -119,28 +142,37 @@ class HeroBanner(QFrame):
         p.setRenderHint(QPainter.SmoothPixmapTransform)
         r = self.rect()
 
+        # ── 1. Backdrop atau fallback gradient ──────────────────────────
         if self._pixmap and not self._pixmap.isNull():
-            scaled = self._pixmap.scaled(r.size(), Qt.KeepAspectRatioByExpanding,
-                                          Qt.SmoothTransformation)
-            x = (scaled.width() - r.width()) // 2
-            p.drawPixmap(-x, 0, scaled)
+            scaled = self._pixmap.scaled(
+                r.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
+            )
+            # Tengahkan horizontal & vertikal
+            x = (scaled.width()  - r.width())  // 2
+            y = (scaled.height() - r.height()) // 2
+            p.drawPixmap(-x, -y, scaled)
         else:
+            # Warna genre saat gambar belum datang
             gids  = self._film.get("genre_ids", [])
             color = GENRE_COLORS.get(gids[0] if gids else 0, "#E50914")
             grad  = QLinearGradient(0, 0, r.width(), r.height())
-            c = QColor(color); c.setAlpha(120)
+            c     = QColor(color)
+            c.setAlpha(140)
             grad.setColorAt(0, c)
             grad.setColorAt(1, QColor(BG_BASE))
             p.fillRect(r, QBrush(grad))
 
+        # ── 2. Gradient kiri → kanan (transparan di kanan) ─────────────
         fade_lr = QLinearGradient(0, 0, r.width(), 0)
-        fade_lr.setColorAt(0.0, QColor(20, 20, 20, 245))
-        fade_lr.setColorAt(0.5, QColor(20, 20, 20, 140))
-        fade_lr.setColorAt(1.0, QColor(20, 20, 20, 20))
+        fade_lr.setColorAt(0.00, QColor(20, 20, 20, 210))
+        fade_lr.setColorAt(0.40, QColor(20, 20, 20, 90))
+        fade_lr.setColorAt(0.75, QColor(20, 20, 20, 20))
+        fade_lr.setColorAt(1.00, QColor(20, 20, 20, 0))
         p.fillRect(r, QBrush(fade_lr))
 
-        fade_tb = QLinearGradient(0, r.height() * 0.3, 0, r.height())
-        fade_tb.setColorAt(0, QColor(20, 20, 20, 0))
-        fade_tb.setColorAt(0.6, QColor(20, 20, 20, 80))
-        fade_tb.setColorAt(1, QColor(20, 20, 20, 255))
+        # ── 3. Gradient atas → bawah (fade ke hitam di bawah) ──────────
+        fade_tb = QLinearGradient(0, r.height() * 0.15, 0, r.height())
+        fade_tb.setColorAt(0.0, QColor(20, 20, 20, 0))
+        fade_tb.setColorAt(0.5, QColor(20, 20, 20, 50))
+        fade_tb.setColorAt(1.0, QColor(20, 20, 20, 230))
         p.fillRect(r, QBrush(fade_tb))

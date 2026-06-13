@@ -331,6 +331,7 @@ class MoviesPage(QWidget):
         self._films: list[dict] = []
         self._cards: list[MovieCard] = []
         self._img_workers: list[ImageWorker] = []
+        self._backdrop_worker: ImageWorker | None = None  # worker khusus backdrop
         self._fetch_worker  = None
         self._pages_loaded  = 0
         self._genre_id      = None
@@ -592,6 +593,11 @@ class MoviesPage(QWidget):
         self._img_workers.append(w)
 
     def _load_backdrop(self, film: dict):
+        # Stop backdrop worker sebelumnya jika masih berjalan
+        if self._backdrop_worker and self._backdrop_worker.isRunning():
+            self._backdrop_worker.stop()
+            self._backdrop_worker = None
+
         path = film.get("backdrop_path")
         if not path:
             return
@@ -602,12 +608,12 @@ class MoviesPage(QWidget):
         if px:
             self._hero.set_backdrop(px)
             return
-        w = ImageWorker(self.client, url)
-        w.finished.connect(
+        # Gunakan worker terpisah agar tidak ikut di-stop oleh _stop_img_workers
+        self._backdrop_worker = ImageWorker(self.client, url)
+        self._backdrop_worker.finished.connect(
             lambda u, data: self._hero.set_backdrop(store(u, data))
         )
-        w.start()
-        self._img_workers.append(w)
+        self._backdrop_worker.start()
 
     def _toggle_fav(self, film: dict):
         tmdb_id  = film.get("id")
@@ -695,6 +701,9 @@ class MoviesPage(QWidget):
     def _cleanup(self):
         self._stop_fetch()
         self._stop_img_workers()
+        if self._backdrop_worker and self._backdrop_worker.isRunning():
+            self._backdrop_worker.stop()
+            self._backdrop_worker = None
 
     def __del__(self):
         try:

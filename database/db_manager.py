@@ -43,16 +43,25 @@ class DatabaseManager:
         conn.row_factory = sqlite3.Row
         return conn
 
-    def tambah(self, tmdb_id: int, judul: str, genre: str = "",
+    def tambah(self, tmdb_id: Optional[int], judul: str, genre: str = "",
                 rating: float = 0.0, catatan: str = "",
                 poster_path: str = "", backdrop_path: str = "",
                 overview: str = "", release_year: str = "") -> int:
-        sql = """INSERT OR REPLACE INTO favorit
-                 (tmdb_id,judul,genre,rating,catatan,poster_path,backdrop_path,overview,release_year)
-                 VALUES (?,?,?,?,?,?,?,?,?)"""
         with self._conn() as c:
-            cur = c.execute(sql, (tmdb_id, judul, genre, rating, catatan,
-                                  poster_path, backdrop_path, overview, release_year))
+            if tmdb_id is not None:
+                # Film dari TMDB: pakai REPLACE agar tidak duplikat
+                sql = """INSERT OR REPLACE INTO favorit
+                         (tmdb_id,judul,genre,rating,catatan,poster_path,backdrop_path,overview,release_year)
+                         VALUES (?,?,?,?,?,?,?,?,?)"""
+                cur = c.execute(sql, (tmdb_id, judul, genre, rating, catatan,
+                                      poster_path, backdrop_path, overview, release_year))
+            else:
+                # Film manual: tmdb_id = NULL, selalu INSERT baru agar tidak saling hapus
+                sql = """INSERT INTO favorit
+                         (tmdb_id,judul,genre,rating,catatan,poster_path,backdrop_path,overview,release_year)
+                         VALUES (NULL,?,?,?,?,?,?,?,?)"""
+                cur = c.execute(sql, (judul, genre, rating, catatan,
+                                      poster_path, backdrop_path, overview, release_year))
             fid = cur.lastrowid
             c.execute(
                 "INSERT INTO riwayat (tmdb_id, jenis, keterangan) VALUES (?,?,?)",
@@ -70,13 +79,15 @@ class DatabaseManager:
             return dict(r) if r else None
 
     def by_tmdb(self, tmdb_id: int) -> Optional[dict]:
+        if tmdb_id is None:
+            return None
         with self._conn() as c:
             r = c.execute("SELECT * FROM favorit WHERE tmdb_id=?", (tmdb_id,)).fetchone()
             return dict(r) if r else None
 
     def tmdb_ids(self) -> set[int]:
         with self._conn() as c:
-            rows = c.execute("SELECT tmdb_id FROM favorit").fetchall()
+            rows = c.execute("SELECT tmdb_id FROM favorit WHERE tmdb_id IS NOT NULL").fetchall()
             return {r[0] for r in rows}
 
     def count(self) -> int:
