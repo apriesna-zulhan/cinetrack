@@ -1,12 +1,11 @@
 import sys
-import os
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 from ui.main_window import MainWindow
+from ui.splash_screen import SplashScreen
 from ui.theme import load_qss
-
 
 def main():
     QApplication.setHighDpiScaleFactorRoundingPolicy(
@@ -25,7 +24,18 @@ def main():
         app.setStyleSheet(qss)
 
     window = MainWindow()
-    window.showMaximized()
+
+    splash = SplashScreen()
+    splash.start()
+
+    def show_main():
+        window.showMaximized()
+        splash.finish(window)
+        window.raise_()
+        window.activateWindow()
+
+    QTimer.singleShot(5000, show_main)
+
     sys.exit(app.exec())
 
 
