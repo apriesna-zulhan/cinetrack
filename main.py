@@ -14,7 +14,6 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("CineTrack")
-    app.setApplicationVersion("2.0.0")
     app.setOrganizationName("CineTrack Dev")
 
     app.setFont(QFont("Segoe UI", 10))

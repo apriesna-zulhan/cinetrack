@@ -132,4 +132,3 @@ class SplashScreen(QSplashScreen):
         ver_color = QColor(self.GRAY)
         ver_color.setAlpha(min(self._tagline_alpha, 180))
         painter.setPen(ver_color)
-        painter.drawText(w - 120, h - 30, "v2.0.0")
